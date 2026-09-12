@@ -10,7 +10,34 @@ internal static class NativeMethods
     internal const int WsExNoActivate = 0x08000000;
     internal const int WsExToolWindow = 0x00000080;
 
+    internal const uint InputMouse = 0;
     internal const uint InputKeyboard = 1;
+
+    internal const uint MouseEventMove = 0x0001;
+    internal const uint MouseEventLeftDown = 0x0002;
+    internal const uint MouseEventLeftUp = 0x0004;
+    internal const uint MouseEventRightDown = 0x0008;
+    internal const uint MouseEventRightUp = 0x0010;
+    internal const uint MouseEventMiddleDown = 0x0020;
+    internal const uint MouseEventMiddleUp = 0x0040;
+    internal const uint MouseEventWheel = 0x0800;
+    internal const uint MouseEventHorizontalWheel = 0x1000;
+    internal const uint MouseEventAbsolute = 0x8000;
+
+    /// <summary>One notch of the scroll wheel.</summary>
+    internal const int WheelDelta = 120;
+
+    internal const int SmCxScreen = 0;
+    internal const int SmCyScreen = 1;
+
+    internal const int SwMinimise = 6;
+    internal const int SwMaximise = 3;
+    internal const int SwRestore = 9;
+
+    internal const uint WmClose = 0x0010;
+
+    internal const uint CfUnicodeText = 13;
+    internal const uint GlobalMovable = 0x0002;
 
     internal const uint KeyEventExtendedKey = 0x0001;
     internal const uint KeyEventKeyUp = 0x0002;
@@ -111,6 +138,8 @@ internal static class NativeMethods
 
     internal delegate bool MonitorEnumProc(nint monitor, nint dc, ref Rect rect, nint data);
 
+    internal delegate bool EnumWindowsProc(nint window, nint data);
+
     [DllImport("user32.dll", SetLastError = true)]
     internal static extern uint SendInput(uint count, Input[] inputs, int size);
 
@@ -150,6 +179,75 @@ internal static class NativeMethods
 
     [DllImport("shcore.dll")]
     internal static extern int GetDpiForMonitor(nint monitor, int dpiType, out uint dpiX, out uint dpiY);
+
+    [DllImport("user32.dll")]
+    internal static extern int GetSystemMetrics(int index);
+
+    [DllImport("user32.dll")]
+    internal static extern nint GetForegroundWindow();
+
+    [DllImport("user32.dll")]
+    internal static extern bool SetForegroundWindow(nint window);
+
+    [DllImport("user32.dll")]
+    internal static extern bool ShowWindow(nint window, int command);
+
+    [DllImport("user32.dll")]
+    internal static extern bool IsIconic(nint window);
+
+    [DllImport("user32.dll")]
+    internal static extern bool PostMessageW(nint window, uint message, nint wParam, nint lParam);
+
+    [DllImport("user32.dll")]
+    internal static extern bool EnumWindows(EnumWindowsProc callback, nint data);
+
+    [DllImport("user32.dll")]
+    internal static extern uint GetWindowThreadProcessId(nint window, out uint processId);
+
+    [DllImport("user32.dll")]
+    internal static extern bool IsWindowVisible(nint window);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    internal static extern int GetWindowTextW(nint window, global::System.Text.StringBuilder text, int count);
+
+    [DllImport("user32.dll")]
+    internal static extern int GetWindowTextLengthW(nint window);
+
+    [DllImport("user32.dll")]
+    internal static extern bool AttachThreadInput(uint attachTo, uint attachFrom, bool attach);
+
+    [DllImport("kernel32.dll")]
+    internal static extern uint GetCurrentThreadId();
+
+    [DllImport("user32.dll", SetLastError = true)]
+    internal static extern bool OpenClipboard(nint owner);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    internal static extern bool CloseClipboard();
+
+    [DllImport("user32.dll", SetLastError = true)]
+    internal static extern bool EmptyClipboard();
+
+    [DllImport("user32.dll", SetLastError = true)]
+    internal static extern nint GetClipboardData(uint format);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    internal static extern nint SetClipboardData(uint format, nint data);
+
+    [DllImport("user32.dll")]
+    internal static extern bool IsClipboardFormatAvailable(uint format);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    internal static extern nint GlobalAlloc(uint flags, nuint bytes);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    internal static extern nint GlobalLock(nint memory);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    internal static extern bool GlobalUnlock(nint memory);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    internal static extern nint GlobalFree(nint memory);
 
     [DllImport("dwmapi.dll")]
     internal static extern int DwmSetWindowAttribute(nint window, int attribute, ref int value, int size);

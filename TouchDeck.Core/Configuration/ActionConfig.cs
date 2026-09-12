@@ -83,6 +83,76 @@ public sealed record ActionConfig
     /// <summary>Deserialises the whole action into a typed parameter record.</summary>
     public T? Deserialize<T>(JsonSerializerOptions options) => Raw.Deserialize<T>(options);
 
+    /// <summary>Reads a nested action, as <c>conditional</c> uses for its branches.</summary>
+    /// <param name="name">Parameter name holding the action object.</param>
+    public ActionConfig? GetAction(string name) =>
+        TryGetParameter(name, out var value) && value.ValueKind == JsonValueKind.Object
+            ? Read(value, JsonPath + "." + name)
+            : null;
+
+    /// <summary>Reads a list of nested actions, as <c>sequence</c> and <c>random</c> use.</summary>
+    /// <param name="name">Parameter name holding the array.</param>
+    public IReadOnlyList<ActionConfig> GetActions(string name)
+    {
+        if (!TryGetParameter(name, out var value) || value.ValueKind != JsonValueKind.Array)
+        {
+            return Array.Empty<ActionConfig>();
+        }
+
+        var actions = new List<ActionConfig>();
+        var index = 0;
+
+        foreach (var element in value.EnumerateArray())
+        {
+            if (element.ValueKind == JsonValueKind.Object)
+            {
+                actions.Add(Read(element, $"{JsonPath}.{name}[{index}]"));
+            }
+
+            index++;
+        }
+
+        return actions;
+    }
+
+    /// <summary>Reads an object parameter as a map of strings, as <c>headers</c> uses.</summary>
+    /// <param name="name">Parameter name holding the object.</param>
+    public IReadOnlyDictionary<string, string> GetMap(string name)
+    {
+        var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        if (!TryGetParameter(name, out var value) || value.ValueKind != JsonValueKind.Object)
+        {
+            return map;
+        }
+
+        foreach (var property in value.EnumerateObject())
+        {
+            map[property.Name] = property.Value.ValueKind == JsonValueKind.String
+                ? property.Value.GetString() ?? ""
+                : property.Value.ToString();
+        }
+
+        return map;
+    }
+
+    private static ActionConfig Read(JsonElement element, string jsonPath)
+    {
+        var type = "";
+
+        foreach (var property in element.EnumerateObject())
+        {
+            if (string.Equals(property.Name, "type", StringComparison.OrdinalIgnoreCase)
+                && property.Value.ValueKind == JsonValueKind.String)
+            {
+                type = property.Value.GetString() ?? "";
+                break;
+            }
+        }
+
+        return new ActionConfig { Type = type, Raw = element.Clone(), JsonPath = jsonPath };
+    }
+
     /// <summary>Returns the action as an editable JSON object.</summary>
     public JsonObject ToObject()
     {

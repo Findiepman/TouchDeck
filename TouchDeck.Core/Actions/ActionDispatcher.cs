@@ -66,7 +66,11 @@ public sealed class ActionDispatcher
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
         timeout.CancelAfter(Timeout);
 
-        var context = new ActionContext(action, _services, _logger.ForContext("ActionType", action.Type));
+        var context = new ActionContext(
+            action,
+            _services,
+            _logger.ForContext("ActionType", action.Type),
+            (nested, token) => ExecuteAsync(nested, token));
         var stopwatch = Stopwatch.StartNew();
 
         try

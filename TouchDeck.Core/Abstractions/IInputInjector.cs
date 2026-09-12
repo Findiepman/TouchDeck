@@ -23,4 +23,24 @@ public interface IInputInjector
 
     /// <summary>Releases every key this injector is currently holding down.</summary>
     void ReleaseAllHeldKeys();
+
+    /// <summary>Types literal text, including characters no key on the keyboard produces.</summary>
+    /// <param name="text">What to type.</param>
+    void TypeText(string text);
+
+    /// <summary>Presses, holds or releases a mouse button where the pointer is.</summary>
+    /// <param name="button">Which button.</param>
+    /// <param name="action">Whether to click, hold or release.</param>
+    void MouseButton(MouseButton button, PressAction action);
+
+    /// <summary>Moves the pointer.</summary>
+    /// <param name="x">Horizontal position, or offset when relative.</param>
+    /// <param name="y">Vertical position, or offset when relative.</param>
+    /// <param name="relative">True to move by the amount rather than to the position.</param>
+    void MoveMouse(int x, int y, bool relative);
+
+    /// <summary>Turns the scroll wheel.</summary>
+    /// <param name="amount">How many notches.</param>
+    /// <param name="direction">Which way.</param>
+    void Scroll(int amount, ScrollDirection direction);
 }

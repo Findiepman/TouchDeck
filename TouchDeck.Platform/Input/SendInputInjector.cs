@@ -198,6 +198,145 @@ public sealed class SendInputInjector : IInputInjector
         return true;
     }
 
+    /// <inheritdoc />
+    public void TypeText(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+        {
+            return;
+        }
+
+        var inputs = new List<NativeMethods.Input>(text.Length * 2);
+
+        // Unicode injection sends the character itself, so it works whatever the keyboard
+        // layout is and reaches characters no key produces.
+        foreach (var unit in text)
+        {
+            if (unit == '\n')
+            {
+                inputs.Add(BuildInput(VirtualKey.Enter, down: true));
+                inputs.Add(BuildInput(VirtualKey.Enter, down: false));
+                continue;
+            }
+
+            if (unit == '\r')
+            {
+                continue;
+            }
+
+            inputs.Add(BuildUnicode(unit, down: true));
+            inputs.Add(BuildUnicode(unit, down: false));
+        }
+
+        Send(inputs);
+    }
+
+    /// <inheritdoc />
+    public void MouseButton(Core.Abstractions.MouseButton button, PressAction action)
+    {
+        var (down, up) = button switch
+        {
+            Core.Abstractions.MouseButton.Right =>
+                (NativeMethods.MouseEventRightDown, NativeMethods.MouseEventRightUp),
+            Core.Abstractions.MouseButton.Middle =>
+                (NativeMethods.MouseEventMiddleDown, NativeMethods.MouseEventMiddleUp),
+            _ => (NativeMethods.MouseEventLeftDown, NativeMethods.MouseEventLeftUp),
+        };
+
+        var inputs = new List<NativeMethods.Input>(2);
+
+        if (action is PressAction.Click or PressAction.Down)
+        {
+            inputs.Add(BuildMouse(down, 0, 0, 0));
+        }
+
+        if (action is PressAction.Click or PressAction.Up)
+        {
+            inputs.Add(BuildMouse(up, 0, 0, 0));
+        }
+
+        Send(inputs);
+    }
+
+    /// <inheritdoc />
+    public void MoveMouse(int x, int y, bool relative)
+    {
+        if (relative)
+        {
+            Send(new List<NativeMethods.Input> { BuildMouse(NativeMethods.MouseEventMove, x, y, 0) });
+            return;
+        }
+
+        // Absolute movement is in a 0 to 65535 space across the primary screen.
+        var width = Math.Max(1, NativeMethods.GetSystemMetrics(NativeMethods.SmCxScreen));
+        var height = Math.Max(1, NativeMethods.GetSystemMetrics(NativeMethods.SmCyScreen));
+
+        Send(new List<NativeMethods.Input>
+        {
+            BuildMouse(
+                NativeMethods.MouseEventMove | NativeMethods.MouseEventAbsolute,
+                (int)Math.Round(x * 65535.0 / width),
+                (int)Math.Round(y * 65535.0 / height),
+                0),
+        });
+    }
+
+    /// <inheritdoc />
+    public void Scroll(int amount, ScrollDirection direction)
+    {
+        var notches = Math.Max(1, Math.Abs(amount));
+
+        var (flag, sign) = direction switch
+        {
+            ScrollDirection.Down => (NativeMethods.MouseEventWheel, -1),
+            ScrollDirection.Left => (NativeMethods.MouseEventHorizontalWheel, -1),
+            ScrollDirection.Right => (NativeMethods.MouseEventHorizontalWheel, 1),
+            _ => (NativeMethods.MouseEventWheel, 1),
+        };
+
+        var inputs = new List<NativeMethods.Input>(notches);
+
+        for (var i = 0; i < notches; i++)
+        {
+            inputs.Add(BuildMouse(flag, 0, 0, sign * NativeMethods.WheelDelta));
+        }
+
+        Send(inputs);
+    }
+
+    private static NativeMethods.Input BuildMouse(uint flags, int dx, int dy, int data) => new()
+    {
+        Type = NativeMethods.InputMouse,
+        Union = new NativeMethods.InputUnion
+        {
+            Mouse = new NativeMethods.MouseInput
+            {
+                Dx = dx,
+                Dy = dy,
+                MouseData = unchecked((uint)data),
+                Flags = flags,
+                Time = 0,
+                ExtraInfo = 0,
+            },
+        },
+    };
+
+    private static NativeMethods.Input BuildUnicode(char unit, bool down) => new()
+    {
+        Type = NativeMethods.InputKeyboard,
+        Union = new NativeMethods.InputUnion
+        {
+            Keyboard = new NativeMethods.KeyboardInput
+            {
+                Vk = 0,
+                Scan = unit,
+                Flags = NativeMethods.KeyEventUnicode | (down ? 0 : NativeMethods.KeyEventKeyUp),
+                Time = 0,
+                ExtraInfo = 0,
+            },
+        },
+    };
+
     private static NativeMethods.Input BuildInput(VirtualKey key, bool down)
     {
         var mapped = NativeMethods.MapVirtualKey((uint)key, NativeMethods.MapvkVkToVscEx);

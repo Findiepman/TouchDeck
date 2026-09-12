@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using Serilog;
 using TouchDeck.Core.Abstractions;
+using TouchDeck.Platform.Windowing;
 
 namespace TouchDeck.Platform.Process;
 
@@ -12,12 +13,15 @@ namespace TouchDeck.Platform.Process;
 public sealed class ShellProcessLauncher : IProcessLauncher
 {
     private readonly ILogger _logger;
+    private readonly WindowManager _windows;
 
     /// <summary>Creates a launcher.</summary>
     /// <param name="logger">Where launches are recorded.</param>
-    public ShellProcessLauncher(ILogger logger)
+    /// <param name="windows">Used to bring an already running copy forward.</param>
+    public ShellProcessLauncher(ILogger logger, WindowManager windows)
     {
         _logger = logger.ForContext<ShellProcessLauncher>();
+        _windows = windows;
     }
 
     /// <inheritdoc />
@@ -28,9 +32,32 @@ public sealed class ShellProcessLauncher : IProcessLauncher
             throw new ArgumentException("A launch needs a path.", nameof(request));
         }
 
+        var path = Environment.ExpandEnvironmentVariables(request.Path);
+
+        if (request.FocusIfRunning || request.SingleInstance)
+        {
+            var name = System.IO.Path.GetFileNameWithoutExtension(path);
+
+            if (IsRunning(name))
+            {
+                if (request.FocusIfRunning && _windows.Find(new WindowMatch(name, null)) is { } window)
+                {
+                    WindowManager.Focus(window);
+                    _logger.Information("Brought {Name} forward instead of starting another.", name);
+                    return;
+                }
+
+                if (request.SingleInstance)
+                {
+                    _logger.Information("{Name} is already running, so nothing was started.", name);
+                    return;
+                }
+            }
+        }
+
         var info = new ProcessStartInfo
         {
-            FileName = Environment.ExpandEnvironmentVariables(request.Path),
+            FileName = path,
             UseShellExecute = true,
         };
 
@@ -46,7 +73,7 @@ public sealed class ShellProcessLauncher : IProcessLauncher
 
         try
         {
-            using var started = System.Diagnostics.Process.Start(info);
+            using var started = global::System.Diagnostics.Process.Start(info);
             _logger.Information("Launched {Path} {Arguments}", info.FileName, info.Arguments);
         }
         catch (Win32Exception ex)
@@ -56,6 +83,18 @@ public sealed class ShellProcessLauncher : IProcessLauncher
         catch (FileNotFoundException ex)
         {
             throw new InvalidOperationException($"\"{info.FileName}\" does not exist.", ex);
+        }
+    }
+
+    private static bool IsRunning(string processName)
+    {
+        try
+        {
+            return global::System.Diagnostics.Process.GetProcessesByName(processName).Length > 0;
+        }
+        catch (InvalidOperationException)
+        {
+            return false;
         }
     }
 }
