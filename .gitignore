@@ -4,3 +4,6 @@ obj/
 .vs/
 publish/
 artifacts/
+
+# Working notes for whoever picks this up next, deliberately not shared.
+status.md
