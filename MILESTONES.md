@@ -69,7 +69,7 @@ the deck is running:
 
 - Tray icon and menu, which is what finally replaces `--quit`
 - A global hotkey to show and hide the panel
-- Start with Windows
+- Start with Windows — done, ahead of the rest of this milestone
 - Idle dimming, and keeping the touchscreen awake
 - The validation error overlay on the panel itself, instead of only in the log
 - A generated JSON schema, so hand editing gets autocomplete

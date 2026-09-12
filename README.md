@@ -124,6 +124,7 @@ monitor at 0 and the rest left to right.
 | `hotReload` | `true` | Reload when a file in the config folder is saved. |
 | `singleInstance` | `true` | Refuse to start a second deck. |
 | `actionTimeoutMs` | `10000` | An action running longer than this is cancelled and logged. |
+| `startWithWindows` | `false` | Start the deck when you log in. |
 
 ### logging
 
@@ -385,8 +386,8 @@ not landed. They are in `MILESTONES.md`.
 - `state`, `visibleWhen`, `enabledWhen`, and providers such as `system.cpu` or `obs.currentScene`
 - `autoSwitch` on a profile, and swiping between pages
 - `transition` on a theme
-- `behaviour`: `startWithWindows`, `startMinimisedToTray`, `preventDisplaySleep`,
-  `dimAfterSeconds`, `dimOpacity`, `wakeOnTouch`, `longPressMs`, `doubleTapMs`
+- `behaviour`: `startMinimisedToTray`, `preventDisplaySleep`, `dimAfterSeconds`,
+  `dimOpacity`, `wakeOnTouch`, `longPressMs`, `doubleTapMs`
 - `feedback.pressSound`
 - The tray icon, a global show and hide hotkey, and the on screen error overlay
 

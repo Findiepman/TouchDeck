@@ -44,6 +44,8 @@ public partial class App : Application
     private SingleInstanceGuard? _instance;
     private ConfigService? _configService;
     private SendInputInjector? _injector;
+    private WindowsStartup? _startup;
+    private string? _configDirectory;
     private ObsControl? _obs;
     private CoreAudioMixer? _audio;
     private HttpSender? _http;
@@ -76,6 +78,7 @@ public partial class App : Application
             return;
         }
 
+        _configDirectory = options.ConfigDirectory;
         _paths = options.ConfigDirectory is { Length: > 0 } directory
             ? new ConfigPaths(directory)
             : ConfigPaths.FromEnvironment();
@@ -149,6 +152,9 @@ public partial class App : Application
 
         _viewModel.Apply(configuration);
         _obs.Configure(configuration.App.Integrations.Obs);
+
+        _startup = new WindowsStartup(_logger);
+        ApplyStartupSetting(configuration);
 
         _window = new DeckWindow(_viewModel, _logger);
         _window.Show();
@@ -265,12 +271,44 @@ public partial class App : Application
         _logger.Error(exception, "{Message}", message);
     }
 
+    /// <summary>
+    /// Keeps the Windows startup entry in step with the setting. The entry is only touched
+    /// when running on the normal config folder, so trying a layout out with --config can
+    /// never quietly take over what starts with Windows.
+    /// </summary>
+    /// <param name="configuration">The configuration now in force.</param>
+    private void ApplyStartupSetting(DeckConfiguration configuration)
+    {
+        if (_startup is null)
+        {
+            return;
+        }
+
+        if (_configDirectory is { Length: > 0 })
+        {
+            _logger.Debug("Running on a config folder given on the command line, so startup was left alone.");
+            return;
+        }
+
+        var executable = Environment.ProcessPath;
+
+        if (executable is null)
+        {
+            return;
+        }
+
+        _startup.Apply(
+            configuration.App.Behaviour.StartWithWindows,
+            WindowsStartup.CommandFor(executable, null));
+    }
+
     private void OnConfigurationChanged(object? sender, DeckConfiguration configuration) =>
         Dispatcher.BeginInvoke(() =>
         {
             _logging.Apply(configuration.App.Logging);
             _viewModel?.Apply(configuration);
             _obs?.Configure(configuration.App.Integrations.Obs);
+            ApplyStartupSetting(configuration);
         });
 
     /// <summary>
