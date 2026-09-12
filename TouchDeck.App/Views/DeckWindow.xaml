@@ -1,0 +1,22 @@
+<Window x:Class="TouchDeck.App.Views.DeckWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:rendering="clr-namespace:TouchDeck.App.Rendering"
+        Title="TouchDeck"
+        WindowStyle="None"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        Topmost="True"
+        ShowActivated="False"
+        WindowStartupLocation="Manual"
+        Cursor="None"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        Background="Black"
+        Width="800"
+        Height="480">
+
+    <Grid>
+        <rendering:DeckGrid x:Name="Surface" />
+    </Grid>
+</Window>

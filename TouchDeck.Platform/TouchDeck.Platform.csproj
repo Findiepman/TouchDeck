@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <RootNamespace>TouchDeck.Platform</RootNamespace>
+    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
+    <!-- Interop structs have fields that exist only to give the union its real size. -->
+    <NoWarn>$(NoWarn);CS0649;SYSLIB1054</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TouchDeck.Core\TouchDeck.Core.csproj" />
+  </ItemGroup>
+
+</Project>

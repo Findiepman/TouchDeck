@@ -1,0 +1,158 @@
+using System.Runtime.InteropServices;
+
+namespace TouchDeck.Platform.Native;
+
+/// <summary>Win32 entry points. Nothing outside this namespace talks to the operating system.</summary>
+internal static class NativeMethods
+{
+    internal const int GwlExStyle = -20;
+
+    internal const int WsExNoActivate = 0x08000000;
+    internal const int WsExToolWindow = 0x00000080;
+
+    internal const uint InputKeyboard = 1;
+
+    internal const uint KeyEventExtendedKey = 0x0001;
+    internal const uint KeyEventKeyUp = 0x0002;
+    internal const uint KeyEventUnicode = 0x0004;
+    internal const uint KeyEventScanCode = 0x0008;
+
+    /// <summary>Virtual key to scan code, with the 0xE0 prefix kept in the high byte.</summary>
+    internal const uint MapvkVkToVscEx = 4;
+
+    internal const uint MonitorDefaultToNearest = 2;
+
+    internal const uint MonitorInfoPrimary = 1;
+
+    internal static readonly nint HwndTopmost = -1;
+
+    internal const uint SwpNoActivate = 0x0010;
+    internal const uint SwpShowWindow = 0x0040;
+
+    /// <summary>The effective dpi, which is what Windows actually renders that monitor at.</summary>
+    internal const int MdtEffectiveDpi = 0;
+
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct Rect
+    {
+        public int Left;
+        public int Top;
+        public int Right;
+        public int Bottom;
+
+        public readonly int Width => Right - Left;
+
+        public readonly int Height => Bottom - Top;
+    }
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    internal struct MonitorInfoEx
+    {
+        public int Size;
+        public Rect Monitor;
+        public Rect WorkArea;
+        public uint Flags;
+
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
+        public string DeviceName;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct KeyboardInput
+    {
+        public ushort Vk;
+        public ushort Scan;
+        public uint Flags;
+        public uint Time;
+        public nuint ExtraInfo;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct MouseInput
+    {
+        public int Dx;
+        public int Dy;
+        public uint MouseData;
+        public uint Flags;
+        public uint Time;
+        public nuint ExtraInfo;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct HardwareInput
+    {
+        public uint Msg;
+        public ushort ParamL;
+        public ushort ParamH;
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
+    internal struct InputUnion
+    {
+        [FieldOffset(0)]
+        public MouseInput Mouse;
+
+        [FieldOffset(0)]
+        public KeyboardInput Keyboard;
+
+        [FieldOffset(0)]
+        public HardwareInput Hardware;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct Input
+    {
+        public uint Type;
+        public InputUnion Union;
+    }
+
+    internal delegate bool MonitorEnumProc(nint monitor, nint dc, ref Rect rect, nint data);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    internal static extern uint SendInput(uint count, Input[] inputs, int size);
+
+    [DllImport("user32.dll")]
+    internal static extern uint MapVirtualKey(uint code, uint mapType);
+
+    [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW", SetLastError = true)]
+    private static extern nint GetWindowLongPtr64(nint window, int index);
+
+    [DllImport("user32.dll", EntryPoint = "GetWindowLongW", SetLastError = true)]
+    private static extern int GetWindowLong32(nint window, int index);
+
+    [DllImport("user32.dll", EntryPoint = "SetWindowLongPtrW", SetLastError = true)]
+    private static extern nint SetWindowLongPtr64(nint window, int index, nint value);
+
+    [DllImport("user32.dll", EntryPoint = "SetWindowLongW", SetLastError = true)]
+    private static extern int SetWindowLong32(nint window, int index, int value);
+
+    [DllImport("user32.dll")]
+    internal static extern bool EnumDisplayMonitors(nint dc, nint clip, MonitorEnumProc callback, nint data);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    internal static extern bool GetMonitorInfoW(nint monitor, ref MonitorInfoEx info);
+
+    [DllImport("user32.dll")]
+    internal static extern nint MonitorFromWindow(nint window, uint flags);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    internal static extern bool SetWindowPos(
+        nint window,
+        nint insertAfter,
+        int x,
+        int y,
+        int width,
+        int height,
+        uint flags);
+
+    [DllImport("shcore.dll")]
+    internal static extern int GetDpiForMonitor(nint monitor, int dpiType, out uint dpiX, out uint dpiY);
+
+    /// <summary>Reads a window long, using the pointer sized call on 64 bit.</summary>
+    internal static nint GetWindowLongPtr(nint window, int index) =>
+        nint.Size == 8 ? GetWindowLongPtr64(window, index) : GetWindowLong32(window, index);
+
+    /// <summary>Writes a window long, using the pointer sized call on 64 bit.</summary>
+    internal static nint SetWindowLongPtr(nint window, int index, nint value) =>
+        nint.Size == 8 ? SetWindowLongPtr64(window, index, value) : SetWindowLong32(window, index, (int)value);
+}
