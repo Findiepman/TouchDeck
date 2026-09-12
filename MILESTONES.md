@@ -13,12 +13,12 @@ Pulled forward from later milestones: the action interface, the assembly scanned
 the action context, per action timeouts and error isolation (M2); themes and per button
 style overrides (M5).
 
-## M2 — The action system — in progress
+## M2 — The action system — done
 
-Every action type in section 6.2 of the brief:
+All 26 action types from section 6.2:
 
-- Input: `keyDown`, `keyUp`, `text`, `mouse`, `scroll`
-- Apps and system: `open`, `shell`, `window`, `clipboard`, and the focus options on `launch`
+- Input: `hotkey`, `keyDown`, `keyUp`, `text`, `mouse`, `scroll`
+- Apps and system: `launch` with its focus options, `open`, `shell`, `window`, `clipboard`
 - Audio: `audio`, `media`
 - OBS: `obs`
 - Deck control: `switchProfile`, `switchPage`, `openFolder`, `closeFolder`, `setVariable`,
@@ -26,15 +26,15 @@ Every action type in section 6.2 of the brief:
 - Composition: `sequence`, `delay`, `conditional`, `random`
 - Escape hatches: `http`, `ahk`
 
-Deck control and `conditional` need three things the brief puts in later milestones, so they
-come with this one or the actions would be hollow: a deck controller that really changes
-page and profile, a variable store, and the expression language.
+Three things the brief puts later came with it, because the actions would otherwise be
+hollow: a deck controller that really changes page and profile, a variable store that
+remembers across restarts, and the expression language.
 
 ## M3 — Structure
 
-Folders and back buttons. Automatic profile switching from the foreground window, using a
-window event hook rather than polling. Swipe between pages with inertia. The page change
-animation. Manual page and profile switching arrives in M2 with the actions that do it.
+What is left after M2 did the switching: automatic profile switching from the foreground
+window, using a window event hook rather than polling; swipe between pages with inertia; and
+the page change animation. Pages, folders, back buttons and manual switching are done.
 
 ## M4 — Icons and looks
 

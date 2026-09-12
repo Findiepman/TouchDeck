@@ -26,6 +26,8 @@ public sealed class LaunchAction : IAction
         ActionParameter.Require("path", ActionParameterKind.FilePath, "What to start, such as notepad.exe."),
         ActionParameter.Optional("args", ActionParameterKind.Text, "Command line arguments."),
         ActionParameter.Optional("workingDir", ActionParameterKind.FolderPath, "Folder to start it in."),
+        ActionParameter.Optional("focusIfRunning", ActionParameterKind.Boolean, "Bring it forward if it is already open.", "false"),
+        ActionParameter.Optional("singleInstance", ActionParameterKind.Boolean, "Do nothing if it is already running.", "false"),
     };
 
     /// <inheritdoc />
@@ -34,7 +36,9 @@ public sealed class LaunchAction : IAction
         var request = new LaunchRequest(
             ctx.RequireString("path"),
             ctx.Action.GetString("args"),
-            ctx.Action.GetString("workingDir"));
+            ctx.Action.GetString("workingDir"),
+            ctx.Action.GetBoolean("singleInstance"),
+            ctx.Action.GetBoolean("focusIfRunning"));
 
         try
         {

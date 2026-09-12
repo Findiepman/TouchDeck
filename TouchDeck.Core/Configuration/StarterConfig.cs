@@ -215,8 +215,83 @@ public static class StarterConfig
             { "col": 0, "row": 2, "label": "Notepad",  "action": { "type": "launch", "path": "notepad.exe" } },
             { "col": 1, "row": 2, "label": "Calc",     "action": { "type": "launch", "path": "calc.exe" } },
             { "col": 2, "row": 2, "label": "Explorer", "action": { "type": "launch", "path": "explorer.exe" } },
-            { "col": 3, "row": 2, "label": "Terminal", "action": { "type": "launch", "path": "powershell.exe" } },
-            { "col": 4, "row": 2, "label": "Settings", "action": { "type": "launch", "path": "ms-settings:" } }
+
+            // Bring the terminal forward if it is already open, rather than opening another.
+            {
+              "col": 3, "row": 2,
+              "label": "Terminal",
+              "action": { "type": "launch", "path": "powershell.exe", "focusIfRunning": true }
+            },
+
+            // A folder is a page you reach from a button, with a way back on it.
+            { "col": 4, "row": 2, "label": "More", "action": { "type": "openFolder", "page": "more" } }
+          ]
+        },
+
+        {
+          "id": "more",
+          "name": "More",
+          "isFolder": true,
+
+          // Where the way back sits, and what it says.
+          "backButton": { "col": 4, "row": 2, "label": "Back", "action": { "type": "closeFolder" } },
+
+          "buttons": [
+            // Types the text wherever the caret is. Any character works, including emoji.
+            {
+              "col": 0, "row": 0,
+              "label": "Signature",
+              "action": { "type": "text", "value": "Sent from my deck" }
+            },
+
+            // Puts something on the clipboard without going near the keyboard.
+            {
+              "col": 1, "row": 0,
+              "label": "Copy link",
+              "action": { "type": "clipboard", "operation": "set", "value": "https://example.com" }
+            },
+
+            { "col": 2, "row": 0, "label": "Open site",
+              "action": { "type": "open", "url": "https://example.com" } },
+
+            // Several things in a row, with a pause so the first one lands.
+            {
+              "col": 3, "row": 0,
+              "label": "Tidy up",
+              "action": {
+                "type": "sequence",
+                "steps": [
+                  { "type": "window", "operation": "minimise", "processName": "explorer.exe" },
+                  { "type": "delay", "ms": 150 },
+                  { "type": "setVariable", "name": "tidied", "value": "true", "scope": "session" }
+                ]
+              }
+            },
+
+            { "col": 0, "row": 1, "label": "Volume -",
+              "action": { "type": "audio", "operation": "adjust", "value": -0.1 } },
+            { "col": 1, "row": 1, "label": "Mute",
+              "action": { "type": "audio", "operation": "toggleMute" } },
+            { "col": 2, "row": 1, "label": "Volume +",
+              "action": { "type": "audio", "operation": "adjust", "value": 0.1 } },
+
+            // Remembers a value, which a condition elsewhere can test.
+            { "col": 3, "row": 1, "label": "Flip mode",
+              "action": { "type": "toggleVariable", "name": "quiet" } },
+
+            // Does one thing or the other depending on what is remembered.
+            {
+              "col": 0, "row": 2,
+              "label": "Depends",
+              "action": {
+                "type": "conditional",
+                "if": "var.quiet == true",
+                "then": { "type": "audio", "operation": "mute" },
+                "else": { "type": "audio", "operation": "unmute" }
+              }
+            },
+
+            { "col": 1, "row": 2, "label": "Media",   "action": { "type": "switchProfile", "profile": "media" } }
           ]
         }
       ]
@@ -238,13 +313,15 @@ public static class StarterConfig
         {
           "id": "main",
           "buttons": [
-            { "col": 0, "row": 0, "label": "Previous", "action": { "type": "hotkey", "keys": "mediaprevious" } },
-            { "col": 1, "row": 0, "label": "Play",     "action": { "type": "hotkey", "keys": "mediaplaypause" } },
-            { "col": 2, "row": 0, "label": "Next",     "action": { "type": "hotkey", "keys": "medianext" } },
+            // These go through the media keys, so whatever is playing picks them up.
+            { "col": 0, "row": 0, "label": "Previous", "action": { "type": "media", "command": "previous" } },
+            { "col": 1, "row": 0, "label": "Play",     "action": { "type": "media", "command": "playPause" } },
+            { "col": 2, "row": 0, "label": "Next",     "action": { "type": "media", "command": "next" } },
 
-            { "col": 0, "row": 1, "label": "Volume -", "action": { "type": "hotkey", "keys": "volumedown", "repeat": 3 } },
-            { "col": 1, "row": 1, "label": "Mute",     "action": { "type": "hotkey", "keys": "volumemute" } },
-            { "col": 2, "row": 1, "label": "Volume +", "action": { "type": "hotkey", "keys": "volumeup", "repeat": 3 } }
+            // These change the Windows volume itself rather than pressing a key.
+            { "col": 0, "row": 1, "label": "Volume -", "action": { "type": "audio", "operation": "adjust", "value": -0.05 } },
+            { "col": 1, "row": 1, "label": "Mute",     "action": { "type": "audio", "operation": "toggleMute" } },
+            { "col": 2, "row": 1, "label": "Back",     "action": { "type": "switchProfile", "profile": "default" } }
           ]
         }
       ]

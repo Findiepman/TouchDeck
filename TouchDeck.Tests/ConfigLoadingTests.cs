@@ -23,7 +23,7 @@ public sealed class ConfigLoadingTests : IDisposable
     {
         StarterConfig.EnsureExists(Paths);
 
-        var configuration = new ConfigLoader(Paths, new[] { "hotkey", "launch" }).Load();
+        var configuration = new ConfigLoader(Paths, KnownActions.Types).Load();
 
         Assert.Empty(configuration.Messages);
         Assert.Equal(2, configuration.Profiles.Count);

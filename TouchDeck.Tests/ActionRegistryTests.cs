@@ -118,8 +118,8 @@ public class ActionRegistryTests
     private static ActionDispatcher DispatcherWith(IInputInjector injector)
     {
         var services = new ServiceRegistry()
-            .Add(injector)
-            .Add<IProcessLauncher>(new ThrowingLauncher());
+            .Add<IInputInjector>(injector)
+            .Add<IProcessLauncher>(new RecordingLauncher());
 
         return new ActionDispatcher(Registry, services, Logger.None);
     }
@@ -127,24 +127,4 @@ public class ActionRegistryTests
     private static ActionConfig Action(string json) =>
         JsonSerializer.Deserialize<ActionConfig>(json, ConfigJson.Options)!;
 
-    private sealed class RecordingInjector : IInputInjector
-    {
-        public List<KeyCombo> Sent { get; } = new();
-
-        public void SendCombo(KeyCombo combo) => Sent.Add(combo);
-
-        public void HoldCombo(KeyCombo combo) => Sent.Add(combo);
-
-        public void ReleaseCombo(KeyCombo combo) => Sent.Add(combo);
-
-        public void ReleaseAllHeldKeys()
-        {
-        }
-    }
-
-    private sealed class ThrowingLauncher : IProcessLauncher
-    {
-        public void Launch(LaunchRequest request) =>
-            throw new InvalidOperationException("Nothing is launched from a test.");
-    }
 }

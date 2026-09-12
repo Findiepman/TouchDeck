@@ -147,9 +147,10 @@ public sealed class ConfiguratorTests : IDisposable
     {
         var vm = Open();
 
+        var before = vm.Pages.Count;
         vm.AddPageCommand.Execute(null);
 
-        Assert.Equal(2, vm.Pages.Count);
+        Assert.Equal(before + 1, vm.Pages.Count);
         Assert.Empty(vm.CurrentPage!.Buttons);
         Assert.Same(vm.CurrentPage, vm.Inspecting);
     }

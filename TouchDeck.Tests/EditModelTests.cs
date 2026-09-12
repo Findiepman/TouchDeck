@@ -35,7 +35,9 @@ public class EditModelTests
     {
         var model = new ActionEditModel(Registry, Action("""{ "type": "launch", "path": "notepad.exe" }"""));
 
-        Assert.Equal(new[] { "path", "args", "workingDir" }, model.Parameters.Select(p => p.Name));
+        Assert.Equal(
+            new[] { "path", "args", "workingDir", "focusIfRunning", "singleInstance" },
+            model.Parameters.Select(p => p.Name));
         Assert.True(model.Parameters.Single(p => p.Name == "path").IsRequired);
         Assert.False(model.Parameters.Single(p => p.Name == "args").IsRequired);
     }
@@ -58,7 +60,9 @@ public class EditModelTests
             Type = "launch",
         };
 
-        Assert.Equal(new[] { "path", "args", "workingDir" }, model.Parameters.Select(p => p.Name));
+        Assert.Equal(
+            new[] { "path", "args", "workingDir", "focusIfRunning", "singleInstance" },
+            model.Parameters.Select(p => p.Name));
         Assert.Equal("launch", model.ToConfig().Type);
     }
 

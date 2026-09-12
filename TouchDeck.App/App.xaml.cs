@@ -1,3 +1,4 @@
+using System.IO;
 using System.Windows;
 using Serilog;
 using TouchDeck.App.Bootstrap;
@@ -8,8 +9,14 @@ using TouchDeck.App.Views;
 using TouchDeck.Core.Abstractions;
 using TouchDeck.Core.Actions;
 using TouchDeck.Core.Configuration;
+using TouchDeck.Core.Expressions;
+using TouchDeck.Core.Variables;
+using TouchDeck.Platform.Audio;
 using TouchDeck.Platform.Input;
+using TouchDeck.Platform.Obs;
 using TouchDeck.Platform.Process;
+using TouchDeck.Platform.Services;
+using TouchDeck.Platform.Windowing;
 
 namespace TouchDeck.App;
 
@@ -37,6 +44,9 @@ public partial class App : Application
     private SingleInstanceGuard? _instance;
     private ConfigService? _configService;
     private SendInputInjector? _injector;
+    private ObsControl? _obs;
+    private CoreAudioMixer? _audio;
+    private HttpSender? _http;
     private DeckViewModel? _viewModel;
     private DeckWindow? _window;
     private ConfiguratorWindow? _configurator;
@@ -108,15 +118,37 @@ public partial class App : Application
         _instance.ListenForConfigureRequest(() => Dispatcher.BeginInvoke(() => ShowConfigurator(exitWhenClosed: false)));
 
         _injector = new SendInputInjector(_logger);
+        _obs = new ObsControl(_logger);
+        _audio = new CoreAudioMixer(_logger);
+        _http = new HttpSender(_logger);
+
+        var windows = new WindowManager(_logger);
+        var variables = new VariableStore(Path.Combine(_paths.Root, "variables.json"));
+        var resolver = new DeckValueResolver(variables);
+
         var services = new ServiceRegistry()
             .Add<IInputInjector>(_injector)
-            .Add<IProcessLauncher>(new ShellProcessLauncher(_logger));
+            .Add<IProcessLauncher>(new ShellProcessLauncher(_logger, windows))
+            .Add<IWindowManager>(windows)
+            .Add<IClipboard>(new Win32Clipboard(_logger))
+            .Add<IAudioMixer>(_audio)
+            .Add<IShellRunner>(new ShellRunner(_logger))
+            .Add<IHttpSender>(_http)
+            .Add<IScriptRunner>(new AutoHotkeyRunner(_logger))
+            .Add<IObsControl>(_obs)
+            .Add<IVariableStore>(variables)
+            .Add<IValueResolver>(resolver);
 
         var dispatcher = new ActionDispatcher(_registry, services, _logger);
         dispatcher.Failed += (_, failure) => _logger.Warning("Action failed: {Message}", failure.Message);
 
         _viewModel = new DeckViewModel(dispatcher, _logger);
+
+        // The controller needs the deck, and actions need the controller, so it joins last.
+        services.Add<IDeckController>(new DeckController(_viewModel, Dispatcher));
+
         _viewModel.Apply(configuration);
+        _obs.Configure(configuration.App.Integrations.Obs);
 
         _window = new DeckWindow(_viewModel, _logger);
         _window.Show();
@@ -135,6 +167,10 @@ public partial class App : Application
 
         // Whatever happens, nothing stays held down on the user's keyboard.
         _injector?.ReleaseAllHeldKeys();
+
+        _obs?.Dispose();
+        _audio?.Dispose();
+        _http?.Dispose();
 
         if (_configService is not null)
         {
@@ -234,6 +270,7 @@ public partial class App : Application
         {
             _logging.Apply(configuration.App.Logging);
             _viewModel?.Apply(configuration);
+            _obs?.Configure(configuration.App.Integrations.Obs);
         });
 
     /// <summary>

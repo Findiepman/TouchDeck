@@ -22,7 +22,7 @@ public sealed class ConfigWriterTests : IDisposable
     public void WhatIsWrittenLoadsBackTheSame()
     {
         StarterConfig.EnsureExists(Paths);
-        var before = new ConfigLoader(Paths, new[] { "hotkey", "launch" }).Load();
+        var before = new ConfigLoader(Paths, KnownActions.Types).Load();
 
         var writer = new ConfigWriter(Paths);
         writer.SaveAppConfig(before.App);
@@ -32,7 +32,7 @@ public sealed class ConfigWriterTests : IDisposable
             writer.SaveProfile(profile);
         }
 
-        var after = new ConfigLoader(Paths, new[] { "hotkey", "launch" }).Load();
+        var after = new ConfigLoader(Paths, KnownActions.Types).Load();
 
         Assert.Empty(after.Messages);
         Assert.Equal(before.App.Behaviour, after.App.Behaviour);

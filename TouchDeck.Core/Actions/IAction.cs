@@ -109,29 +109,40 @@ public sealed class ActionContext
             ? value
             : throw new ActionException($"The \"{Action.Type}\" action needs a \"{name}\" value.");
 
-    /// <summary>Reads a parameter that must be one of a fixed set, or throws naming the set.</summary>
+    /// <summary>Reads a parameter that must be one of a fixed set, and is required.</summary>
     /// <typeparam name="TEnum">The set of allowed values.</typeparam>
     /// <param name="name">Parameter name as written in JSON.</param>
-    /// <param name="fallback">Used when the parameter is absent. Null makes it required.</param>
-    public TEnum RequireOneOf<TEnum>(string name, TEnum? fallback = null)
+    public TEnum RequireOneOf<TEnum>(string name)
         where TEnum : struct, Enum
     {
         var written = Action.GetString(name);
 
         if (string.IsNullOrWhiteSpace(written))
         {
-            return fallback ?? throw new ActionException(
+            throw new ActionException(
                 $"The \"{Action.Type}\" action needs a \"{name}\" value, one of: {Choices<TEnum>()}.");
         }
 
-        if (Enum.TryParse<TEnum>(written, ignoreCase: true, out var parsed) && Enum.IsDefined(parsed))
-        {
-            return parsed;
-        }
-
-        throw new ActionException(
-            $"\"{written}\" is not a {name} the \"{Action.Type}\" action knows. Try one of: {Choices<TEnum>()}.");
+        return Parse<TEnum>(name, written);
     }
+
+    /// <summary>Reads a parameter that must be one of a fixed set, falling back when absent.</summary>
+    /// <typeparam name="TEnum">The set of allowed values.</typeparam>
+    /// <param name="name">Parameter name as written in JSON.</param>
+    /// <param name="fallback">Used when the parameter is not there.</param>
+    public TEnum RequireOneOf<TEnum>(string name, TEnum fallback)
+        where TEnum : struct, Enum
+    {
+        var written = Action.GetString(name);
+        return string.IsNullOrWhiteSpace(written) ? fallback : Parse<TEnum>(name, written);
+    }
+
+    private TEnum Parse<TEnum>(string name, string written)
+        where TEnum : struct, Enum =>
+        Enum.TryParse<TEnum>(written, ignoreCase: true, out var parsed) && Enum.IsDefined(parsed)
+            ? parsed
+            : throw new ActionException(
+                $"\"{written}\" is not a {name} the \"{Action.Type}\" action knows. Try one of: {Choices<TEnum>()}.");
 
     /// <summary>The allowed values of an enum, written the way config writes them.</summary>
     /// <typeparam name="TEnum">The enum to list.</typeparam>
