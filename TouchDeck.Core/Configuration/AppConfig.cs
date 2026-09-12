@@ -8,6 +8,10 @@ namespace TouchDeck.Core.Configuration;
 /// </summary>
 public sealed record AppConfig
 {
+    /// <summary>Points editors at the generated schema. Kept so saving does not drop it.</summary>
+    [JsonPropertyName("$schema")]
+    public string? Schema { get; init; } = "./touchdeck.schema.json";
+
     /// <summary>Config schema version. Bumped when a breaking change lands.</summary>
     public int Version { get; init; } = 1;
 

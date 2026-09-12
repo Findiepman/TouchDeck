@@ -6,6 +6,10 @@ namespace TouchDeck.Core.Configuration;
 /// <summary>A profile: one grid, one theme and a set of pages.</summary>
 public sealed record Profile
 {
+    /// <summary>Points editors at the generated schema. Kept so saving does not drop it.</summary>
+    [JsonPropertyName("$schema")]
+    public string? Schema { get; init; } = "../touchdeck.schema.json";
+
     /// <summary>Stable identifier, referenced by <c>switchProfile</c> and by the tray menu.</summary>
     public string Id { get; init; } = "";
 
@@ -91,9 +95,19 @@ public sealed record ButtonConfig
 
     public int Row { get; init; }
 
-    public int ColSpan { get; init; } = 1;
+    /// <summary>Columns the button covers. Null means one.</summary>
+    public int? ColSpan { get; init; }
 
-    public int RowSpan { get; init; } = 1;
+    /// <summary>Rows the button covers. Null means one.</summary>
+    public int? RowSpan { get; init; }
+
+    /// <summary>Columns the button covers, never less than one.</summary>
+    [JsonIgnore]
+    public int SpanColumns => Math.Max(1, ColSpan ?? 1);
+
+    /// <summary>Rows the button covers, never less than one.</summary>
+    [JsonIgnore]
+    public int SpanRows => Math.Max(1, RowSpan ?? 1);
 
     /// <summary>Label text. Supports <c>{{...}}</c> interpolation.</summary>
     public string? Label { get; init; }

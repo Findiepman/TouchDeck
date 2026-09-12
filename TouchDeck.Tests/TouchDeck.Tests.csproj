@@ -4,6 +4,7 @@
     <TargetFramework>net9.0-windows</TargetFramework>
     <RootNamespace>TouchDeck.Tests</RootNamespace>
     <IsPackable>false</IsPackable>
+    <UseWPF>true</UseWPF>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
   </PropertyGroup>
 
@@ -17,6 +18,7 @@
     <ProjectReference Include="..\TouchDeck.Core\TouchDeck.Core.csproj" />
     <ProjectReference Include="..\TouchDeck.Platform\TouchDeck.Platform.csproj" />
     <ProjectReference Include="..\TouchDeck.Actions\TouchDeck.Actions.csproj" />
+    <ProjectReference Include="..\TouchDeck.App\TouchDeck.App.csproj" />
   </ItemGroup>
 
 </Project>

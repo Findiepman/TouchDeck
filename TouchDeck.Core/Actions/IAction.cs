@@ -17,6 +17,21 @@ public interface IAction
     /// <summary>The <c>type</c> discriminator this action answers to, for example <c>hotkey</c>.</summary>
     string Type { get; }
 
+    /// <summary>
+    /// A short name for the action picker in the config center. Defaults to
+    /// <see cref="Type"/>, so an action that does not care can ignore it.
+    /// </summary>
+    string Title => Type;
+
+    /// <summary>One line saying what the action does, shown next to its name in the picker.</summary>
+    string Description => string.Empty;
+
+    /// <summary>
+    /// The parameters this action reads. The config center builds its form from these, which
+    /// is why a new action type needs no editor changes at all.
+    /// </summary>
+    IReadOnlyList<ActionParameter> Parameters => Array.Empty<ActionParameter>();
+
     /// <summary>Runs the action.</summary>
     /// <param name="ctx">Parameters and services for this invocation.</param>
     /// <param name="ct">Cancelled when the action outlives its timeout.</param>

@@ -53,6 +53,21 @@ If the panel takes focus, the selection does not happen and the Notepad title ba
    the message goes.
 4. Fix the file and save. The panel picks the change up on the next reload.
 
+## The config center
+
+1. Run `TouchDeck.exe --configure`. If the deck is already running it opens the editor in
+   that same process rather than starting a second one.
+2. Click an empty cell on the grid. A button appears there and is selected.
+3. Change its label. The grid preview updates as you type.
+4. Pick a different action type. The form underneath changes to that type's own parameters,
+   because it is built from what the action declares rather than from a hard coded list.
+5. Drag a button onto a free cell. It moves, and refuses to land on an occupied one.
+6. Press Save. Every file that changed is written, the previous version of each is kept
+   next to it as `.bak`, and a running deck reloads within about a quarter of a second.
+
+Saving rewrites only the files that changed. A rewritten file loses the comments that were
+in it; the `.bak` beside it still has them.
+
 ## Closing the panel
 
 The panel has no title bar, is not in Alt+Tab, and never takes focus, so until the tray icon
@@ -68,3 +83,4 @@ TouchDeck.exe --quit
 | --- | --- |
 | `--config <dir>` | Use a different config folder. Useful for trying a layout without disturbing the real one. |
 | `--quit` | Ask a running instance to exit. |
+| `--configure` | Open the config center. Works with or without the panel running. |

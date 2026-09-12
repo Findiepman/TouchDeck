@@ -105,8 +105,8 @@ public partial class DeckWindow : Window
 
             DeckGrid.SetColumn(view, button.Col);
             DeckGrid.SetRow(view, button.Row);
-            DeckGrid.SetColumnSpan(view, Math.Max(1, button.ColSpan));
-            DeckGrid.SetRowSpan(view, Math.Max(1, button.RowSpan));
+            DeckGrid.SetColumnSpan(view, button.SpanColumns);
+            DeckGrid.SetRowSpan(view, button.SpanRows);
 
             view.Pressed += (_, config) => _viewModel.Press(config);
 

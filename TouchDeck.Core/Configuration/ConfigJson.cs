@@ -1,3 +1,4 @@
+﻿using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -23,9 +24,14 @@ public static class ConfigJson
             AllowTrailingCommas = true,
             WriteIndented = true,
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+
+            // These files are read and written by people. Escaping "+" as +, which the
+            // default encoder does, makes a hotkey unreadable for no benefit here.
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
         };
 
         options.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase, allowIntegerValues: false));
         return options;
     }
 }
+

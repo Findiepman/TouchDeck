@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 
 namespace TouchDeck.Core.Configuration;
@@ -81,6 +82,34 @@ public sealed record ActionConfig
 
     /// <summary>Deserialises the whole action into a typed parameter record.</summary>
     public T? Deserialize<T>(JsonSerializerOptions options) => Raw.Deserialize<T>(options);
+
+    /// <summary>Returns the action as an editable JSON object.</summary>
+    public JsonObject ToObject()
+    {
+        if (Raw.ValueKind == JsonValueKind.Object
+            && JsonNode.Parse(Raw.GetRawText()) is JsonObject parsed)
+        {
+            return parsed;
+        }
+
+        return new JsonObject { ["type"] = Type };
+    }
+
+    /// <summary>Builds an action from an edited JSON object.</summary>
+    /// <param name="value">The object, which must carry a <c>type</c> property.</param>
+    /// <param name="jsonPath">Where the action sits in its file, for error messages.</param>
+    public static ActionConfig FromObject(JsonObject value, string jsonPath = "")
+    {
+        var type = value["type"]?.GetValue<string>() ?? "";
+
+        using var document = JsonDocument.Parse(value.ToJsonString());
+        return new ActionConfig
+        {
+            Type = type,
+            Raw = document.RootElement.Clone(),
+            JsonPath = jsonPath,
+        };
+    }
 
     /// <summary>Describes the action for logs and error messages.</summary>
     public override string ToString() => string.IsNullOrEmpty(JsonPath) ? Type : $"{Type} at {JsonPath}";

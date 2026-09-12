@@ -20,6 +20,12 @@ public sealed class ActionRegistry
     /// <summary>Every action type the deck can execute.</summary>
     public IReadOnlyCollection<string> KnownTypes => _actions.Keys;
 
+    /// <summary>
+    /// Every registered action, so the config center can read their names and parameters
+    /// instead of keeping its own list.
+    /// </summary>
+    public IReadOnlyCollection<IAction> All => _actions.Values;
+
     /// <summary>Scans assemblies for action implementations.</summary>
     /// <param name="logger">Receives a warning for anything that could not be registered.</param>
     /// <param name="assemblies">Assemblies to scan. Defaults to the calling assembly.</param>

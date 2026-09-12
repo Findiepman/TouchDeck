@@ -1,8 +1,14 @@
+using System.Text.Json.Serialization;
+
 namespace TouchDeck.Core.Configuration;
 
 /// <summary>Root model for <c>themes.json</c>.</summary>
 public sealed record ThemeFile
 {
+    /// <summary>Points editors at the generated schema. Kept so saving does not drop it.</summary>
+    [JsonPropertyName("$schema")]
+    public string? Schema { get; init; } = "./touchdeck.schema.json";
+
     /// <summary>Themes by name. Profiles and buttons reference these names.</summary>
     public IReadOnlyDictionary<string, Theme> Themes { get; init; } =
         new Dictionary<string, Theme>(StringComparer.OrdinalIgnoreCase);

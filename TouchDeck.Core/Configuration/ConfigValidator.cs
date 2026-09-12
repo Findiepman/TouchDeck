@@ -160,7 +160,7 @@ public sealed class ConfigValidator
     {
         var grid = profile.Grid;
 
-        if (button.ColSpan < 1 || button.RowSpan < 1)
+        if (button.ColSpan is < 1 || button.RowSpan is < 1)
         {
             messages.Add(ValidationMessage.Warning(
                 file,
@@ -168,8 +168,8 @@ public sealed class ConfigValidator
                 "colSpan and rowSpan must be at least 1. Treating them as 1."));
         }
 
-        var colSpan = Math.Max(1, button.ColSpan);
-        var rowSpan = Math.Max(1, button.RowSpan);
+        var colSpan = button.SpanColumns;
+        var rowSpan = button.SpanRows;
 
         if (button.Col < 0 || button.Row < 0 || button.Col + colSpan > grid.Columns || button.Row + rowSpan > grid.Rows)
         {

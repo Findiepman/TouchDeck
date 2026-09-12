@@ -16,6 +16,9 @@ public sealed class LoggingSetup : IDisposable
     private const string OutputTemplate =
         "{Timestamp:yyyy-MM-dd HH:mm:ss.fff} [{Level:u3}] {SourceContext}: {Message:lj}{NewLine}{Exception}";
 
+    /// <summary>Cap on one log file, so a repeating failure cannot fill the disk.</summary>
+    private const long MaxLogBytes = 16L * 1024 * 1024;
+
     private readonly LoggingLevelSwitch _levelSwitch = new(LogEventLevel.Information);
 
     private Logger? _logger;
@@ -58,6 +61,9 @@ public sealed class LoggingSetup : IDisposable
                 rollingInterval: RollingInterval.Day,
                 retainedFileCountLimit: Math.Max(1, logging.RetainDays),
                 shared: true,
+                // A failure that repeats every layout pass must not fill the disk.
+                fileSizeLimitBytes: MaxLogBytes,
+                rollOnFileSizeLimit: true,
                 outputTemplate: OutputTemplate)
             .CreateLogger();
 

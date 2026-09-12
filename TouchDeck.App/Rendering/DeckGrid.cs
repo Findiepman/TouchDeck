@@ -146,6 +146,39 @@ public sealed class DeckGrid : Panel
     /// <param name="value">Number of rows, at least one.</param>
     public static void SetRowSpan(UIElement element, int value) => element.SetValue(RowSpanProperty, value);
 
+    /// <summary>
+    /// Works out which cell a point falls in, using the layout from the last pass. Used by
+    /// the config center to turn a click or a drop into a column and row.
+    /// </summary>
+    /// <param name="point">A point in this panel's coordinates.</param>
+    /// <param name="column">The column the point falls in.</param>
+    /// <param name="row">The row the point falls in.</param>
+    /// <returns>False when the point is outside the grid.</returns>
+    public bool TryGetCell(Point point, out int column, out int row)
+    {
+        column = 0;
+        row = 0;
+
+        var layout = Compute(RenderSize);
+        if (layout.CellWidth <= 0 || layout.CellHeight <= 0)
+        {
+            return false;
+        }
+
+        var x = (point.X - layout.OriginX) / (layout.CellWidth + layout.Gap);
+        var y = (point.Y - layout.OriginY) / (layout.CellHeight + layout.Gap);
+
+        if (x < 0 || y < 0)
+        {
+            return false;
+        }
+
+        column = (int)x;
+        row = (int)y;
+
+        return column < Math.Max(1, Columns) && row < Math.Max(1, Rows);
+    }
+
     /// <inheritdoc />
     protected override Size MeasureOverride(Size availableSize)
     {

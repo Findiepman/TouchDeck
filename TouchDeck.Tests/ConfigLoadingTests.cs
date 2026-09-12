@@ -1,3 +1,4 @@
+using System.IO;
 using TouchDeck.Core.Configuration;
 using Xunit;
 

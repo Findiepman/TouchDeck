@@ -16,6 +16,19 @@ public sealed class HotkeyAction : IAction
     public string Type => "hotkey";
 
     /// <inheritdoc />
+    public string Title => "Send hotkey";
+
+    /// <inheritdoc />
+    public string Description => "Sends a key combination to whatever has focus.";
+
+    /// <inheritdoc />
+    public IReadOnlyList<ActionParameter> Parameters { get; } = new[]
+    {
+        ActionParameter.Require("keys", ActionParameterKind.Keys, "The combination to send, such as ctrl+shift+m."),
+        ActionParameter.Optional("repeat", ActionParameterKind.Number, "How many times to send it.", "1"),
+    };
+
+    /// <inheritdoc />
     public Task ExecuteAsync(ActionContext ctx, CancellationToken ct)
     {
         var keys = ctx.RequireString("keys");

@@ -1,0 +1,506 @@
+<Window x:Class="TouchDeck.App.Configurator.ConfiguratorWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:cfg="clr-namespace:TouchDeck.App.Configurator"
+        Title="{Binding Title}"
+        Width="1280"
+        Height="820"
+        MinWidth="960"
+        MinHeight="620"
+        WindowStartupLocation="CenterScreen"
+        Background="#1B1D21"
+        TextElement.Foreground="#E6E8EC"
+        FontFamily="Segoe UI"
+        FontSize="12.5">
+
+    <Window.Resources>
+        <cfg:ColourSwatchConverter x:Key="Swatch" />
+        <cfg:SeverityBrushConverter x:Key="Severity" />
+        <cfg:BoolVisibilityConverter x:Key="Show" />
+        <cfg:InheritConverter x:Key="Inherit" />
+
+        <SolidColorBrush x:Key="Panel" Color="#24272C" />
+        <SolidColorBrush x:Key="Line" Color="#34383F" />
+        <SolidColorBrush x:Key="Muted" Color="#9AA1AC" />
+        <SolidColorBrush x:Key="Accent" Color="#4C9AFF" />
+
+        <Style TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#E6E8EC" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+
+        <Style x:Key="Caption" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource Muted}" />
+            <Setter Property="Margin" Value="0,10,0,3" />
+        </Style>
+
+        <Style x:Key="SectionHeader" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource Accent}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="0,18,0,6" />
+        </Style>
+
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="#15171A" />
+            <Setter Property="Foreground" Value="#E6E8EC" />
+            <Setter Property="BorderBrush" Value="{StaticResource Line}" />
+            <Setter Property="CaretBrush" Value="#E6E8EC" />
+            <Setter Property="Padding" Value="4,3" />
+        </Style>
+
+        <Style TargetType="ComboBox">
+            <Setter Property="Padding" Value="4,3" />
+        </Style>
+
+        <Style TargetType="CheckBox">
+            <Setter Property="Foreground" Value="#E6E8EC" />
+            <Setter Property="Margin" Value="0,4" />
+        </Style>
+
+        <Style TargetType="Button">
+            <Setter Property="Padding" Value="10,4" />
+            <Setter Property="Margin" Value="0,0,6,0" />
+            <Setter Property="MinWidth" Value="34" />
+        </Style>
+
+        <!-- ============================ Settings ============================ -->
+        <DataTemplate DataType="{x:Type cfg:SettingsEditModel}">
+            <StackPanel Margin="14">
+                <TextBlock Style="{StaticResource SectionHeader}" Text="Which screen" Margin="0,0,0,6" />
+
+                <TextBlock Style="{StaticResource Caption}" Text="Monitor" />
+                <ComboBox ItemsSource="{Binding Monitors}"
+                          SelectedItem="{Binding SelectedMonitor}"
+                          DisplayMemberPath="DisplayName" />
+                <TextBlock Style="{StaticResource Caption}"
+                           TextWrapping="Wrap"
+                           Text="Picking a monitor matches it by device name, which survives replugging." />
+
+                <TextBlock Style="{StaticResource Caption}" Text="Match by" />
+                <ComboBox ItemsSource="{Binding Source={x:Static cfg:SettingsEditModel.SelectModes}}"
+                          SelectedItem="{Binding Select}" />
+
+                <TextBlock Style="{StaticResource Caption}" Text="Value" />
+                <TextBox Text="{Binding Value, UpdateSourceTrigger=LostFocus, TargetNullValue=''}" />
+
+                <TextBlock Style="{StaticResource Caption}" Text="Fall back to monitor index" />
+                <TextBox Text="{Binding FallbackToIndex, UpdateSourceTrigger=LostFocus, TargetNullValue=''}" />
+
+                <CheckBox Content="Cover the whole monitor" IsChecked="{Binding Fullscreen}" Margin="0,10,0,0" />
+
+                <TextBlock Style="{StaticResource SectionHeader}" Text="Behaviour" />
+                <TextBlock Style="{StaticResource Caption}" Text="Profile shown at startup" />
+                <TextBox Text="{Binding DefaultProfile, UpdateSourceTrigger=LostFocus}" />
+
+                <CheckBox Content="Reload when a config file is saved" IsChecked="{Binding HotReload}" />
+                <CheckBox Content="Only one deck at a time" IsChecked="{Binding SingleInstance}" />
+                <CheckBox Content="Keep the touchscreen awake" IsChecked="{Binding PreventDisplaySleep}" />
+                <CheckBox Content="Start with Windows" IsChecked="{Binding StartWithWindows}" />
+                <CheckBox Content="Start hidden in the tray" IsChecked="{Binding StartMinimisedToTray}" />
+                <CheckBox Content="Wake on touch without firing the button" IsChecked="{Binding WakeOnTouch}" />
+
+                <TextBlock Style="{StaticResource Caption}" Text="Dim after (seconds, 0 is never)" />
+                <TextBox Text="{Binding DimAfterSeconds, UpdateSourceTrigger=LostFocus}" />
+
+                <TextBlock Style="{StaticResource Caption}" Text="Dim to (0 to 1)" />
+                <TextBox Text="{Binding DimOpacity, UpdateSourceTrigger=LostFocus}" />
+
+                <TextBlock Style="{StaticResource Caption}" Text="Long press (ms)" />
+                <TextBox Text="{Binding LongPressMs, UpdateSourceTrigger=LostFocus}" />
+
+                <TextBlock Style="{StaticResource Caption}" Text="Double tap (ms)" />
+                <TextBox Text="{Binding DoubleTapMs, UpdateSourceTrigger=LostFocus}" />
+
+                <TextBlock Style="{StaticResource Caption}" Text="Action timeout (ms)" />
+                <TextBox Text="{Binding ActionTimeoutMs, UpdateSourceTrigger=LostFocus}" />
+
+                <TextBlock Style="{StaticResource SectionHeader}" Text="Logging" />
+                <TextBlock Style="{StaticResource Caption}" Text="Level" />
+                <ComboBox ItemsSource="{Binding Source={x:Static cfg:SettingsEditModel.LogLevels}}"
+                          SelectedItem="{Binding LogLevel}" />
+
+                <TextBlock Style="{StaticResource Caption}" Text="Days of logs to keep (applies at next start)" />
+                <TextBox Text="{Binding RetainDays, UpdateSourceTrigger=LostFocus}" />
+            </StackPanel>
+        </DataTemplate>
+
+        <!-- ============================ Profile ============================ -->
+        <DataTemplate DataType="{x:Type cfg:ProfileEditModel}">
+            <StackPanel Margin="14">
+                <TextBlock Style="{StaticResource SectionHeader}" Text="Profile" Margin="0,0,0,6" />
+
+                <TextBlock Style="{StaticResource Caption}" Text="Id, used by switchProfile and the tray menu" />
+                <TextBox Text="{Binding Id, UpdateSourceTrigger=LostFocus}" />
+
+                <TextBlock Style="{StaticResource Caption}" Text="Name" />
+                <TextBox Text="{Binding Name, UpdateSourceTrigger=LostFocus, TargetNullValue=''}" />
+
+                <TextBlock Style="{StaticResource Caption}" Text="Theme" />
+                <ComboBox ItemsSource="{Binding DataContext.ThemeNames, RelativeSource={RelativeSource AncestorType=Window}}"
+                          SelectedItem="{Binding Theme}">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Converter={StaticResource Inherit}}" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+
+                <TextBlock Style="{StaticResource SectionHeader}" Text="Grid" />
+                <TextBlock Style="{StaticResource Caption}" Text="Columns" />
+                <TextBox Text="{Binding Columns, UpdateSourceTrigger=LostFocus}" />
+
+                <TextBlock Style="{StaticResource Caption}" Text="Rows" />
+                <TextBox Text="{Binding Rows, UpdateSourceTrigger=LostFocus}" />
+
+                <TextBlock Style="{StaticResource Caption}" Text="Cell shape, width divided by height. Empty means square." />
+                <TextBox Text="{Binding CellAspect, UpdateSourceTrigger=LostFocus, TargetNullValue=''}" />
+
+                <CheckBox Content="Stretch cells to fill the screen" IsChecked="{Binding Fill}" />
+            </StackPanel>
+        </DataTemplate>
+
+        <!-- ============================ Page ============================ -->
+        <DataTemplate DataType="{x:Type cfg:PageEditModel}">
+            <StackPanel Margin="14">
+                <TextBlock Style="{StaticResource SectionHeader}" Text="Page" Margin="0,0,0,6" />
+
+                <TextBlock Style="{StaticResource Caption}" Text="Id" />
+                <TextBox Text="{Binding Id, UpdateSourceTrigger=LostFocus}" />
+
+                <TextBlock Style="{StaticResource Caption}" Text="Name" />
+                <TextBox Text="{Binding Name, UpdateSourceTrigger=LostFocus, TargetNullValue=''}" />
+
+                <CheckBox Content="This page is a folder, reached from a button" IsChecked="{Binding IsFolder}" />
+
+                <TextBlock Style="{StaticResource Caption}"
+                           TextWrapping="Wrap"
+                           Text="Click an empty cell on the grid to add a button. Drag a button to move it." />
+            </StackPanel>
+        </DataTemplate>
+
+        <!-- ============================ Theme ============================ -->
+        <DataTemplate DataType="{x:Type cfg:ThemeEditModel}">
+            <StackPanel Margin="14">
+                <TextBlock Style="{StaticResource SectionHeader}" Text="Theme" Margin="0,0,0,6" />
+
+                <TextBlock Style="{StaticResource Caption}" Text="Name" />
+                <TextBox Text="{Binding Name, UpdateSourceTrigger=LostFocus}" />
+
+                <TextBlock Style="{StaticResource Caption}" Text="Inherits from" />
+                <TextBox Text="{Binding Inherits, UpdateSourceTrigger=LostFocus, TargetNullValue=''}" />
+
+                <TextBlock Style="{StaticResource Caption}" Text="Background" />
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBox Text="{Binding Background, UpdateSourceTrigger=PropertyChanged, TargetNullValue=''}" />
+                    <Border Grid.Column="1" Width="22" Margin="6,0,0,0" CornerRadius="3"
+                            BorderBrush="{StaticResource Line}" BorderThickness="1"
+                            Background="{Binding Background, Converter={StaticResource Swatch}}" />
+                </Grid>
+
+                <TextBlock Style="{StaticResource Caption}" Text="Gap between cells" />
+                <TextBox Text="{Binding Gap, UpdateSourceTrigger=LostFocus, TargetNullValue=''}" />
+
+                <TextBlock Style="{StaticResource Caption}" Text="Padding around the grid" />
+                <TextBox Text="{Binding Padding, UpdateSourceTrigger=LostFocus, TargetNullValue=''}" />
+
+                <TextBlock Style="{StaticResource SectionHeader}" Text="Press feedback" />
+                <TextBlock Style="{StaticResource Caption}" Text="Shrink to (1 disables)" />
+                <TextBox Text="{Binding PressScale, UpdateSourceTrigger=LostFocus, TargetNullValue=''}" />
+
+                <TextBlock Style="{StaticResource Caption}" Text="Duration (ms)" />
+                <TextBox Text="{Binding PressDurationMs, UpdateSourceTrigger=LostFocus, TargetNullValue=''}" />
+
+                <TextBlock Style="{StaticResource Caption}" Text="Easing" />
+                <ComboBox ItemsSource="{Binding Source={x:Static cfg:ThemeEditModel.Easings}}"
+                          SelectedItem="{Binding PressEasing}">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Converter={StaticResource Inherit}}" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+
+                <TextBlock Style="{StaticResource SectionHeader}" Text="Buttons in this theme" />
+                <ContentControl Content="{Binding Button}" />
+            </StackPanel>
+        </DataTemplate>
+
+        <!-- ============================ Style block ============================ -->
+        <DataTemplate DataType="{x:Type cfg:StyleEditModel}">
+            <StackPanel>
+                <TextBlock Style="{StaticResource Caption}" Text="Background" />
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBox Text="{Binding Background, UpdateSourceTrigger=PropertyChanged, TargetNullValue=''}" />
+                    <Border Grid.Column="1" Width="22" Margin="6,0,0,0" CornerRadius="3"
+                            BorderBrush="{StaticResource Line}" BorderThickness="1"
+                            Background="{Binding Background, Converter={StaticResource Swatch}}" />
+                </Grid>
+
+                <TextBlock Style="{StaticResource Caption}" Text="Background while pressed" />
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBox Text="{Binding BackgroundPressed, UpdateSourceTrigger=PropertyChanged, TargetNullValue=''}" />
+                    <Border Grid.Column="1" Width="22" Margin="6,0,0,0" CornerRadius="3"
+                            BorderBrush="{StaticResource Line}" BorderThickness="1"
+                            Background="{Binding BackgroundPressed, Converter={StaticResource Swatch}}" />
+                </Grid>
+
+                <TextBlock Style="{StaticResource Caption}" Text="Text colour" />
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBox Text="{Binding TextColour, UpdateSourceTrigger=PropertyChanged, TargetNullValue=''}" />
+                    <Border Grid.Column="1" Width="22" Margin="6,0,0,0" CornerRadius="3"
+                            BorderBrush="{StaticResource Line}" BorderThickness="1"
+                            Background="{Binding TextColour, Converter={StaticResource Swatch}}" />
+                </Grid>
+
+                <TextBlock Style="{StaticResource Caption}" Text="Border colour" />
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBox Text="{Binding Border, UpdateSourceTrigger=PropertyChanged, TargetNullValue=''}" />
+                    <Border Grid.Column="1" Width="22" Margin="6,0,0,0" CornerRadius="3"
+                            BorderBrush="{StaticResource Line}" BorderThickness="1"
+                            Background="{Binding Border, Converter={StaticResource Swatch}}" />
+                </Grid>
+
+                <TextBlock Style="{StaticResource Caption}" Text="Border width" />
+                <TextBox Text="{Binding BorderWidth, UpdateSourceTrigger=LostFocus, TargetNullValue=''}" />
+
+                <TextBlock Style="{StaticResource Caption}" Text="Corner radius" />
+                <TextBox Text="{Binding CornerRadius, UpdateSourceTrigger=LostFocus, TargetNullValue=''}" />
+
+                <TextBlock Style="{StaticResource Caption}" Text="Font family" />
+                <TextBox Text="{Binding FontFamily, UpdateSourceTrigger=LostFocus, TargetNullValue=''}" />
+
+                <TextBlock Style="{StaticResource Caption}" Text="Font size" />
+                <TextBox Text="{Binding FontSize, UpdateSourceTrigger=LostFocus, TargetNullValue=''}" />
+
+                <TextBlock Style="{StaticResource Caption}" Text="Font weight" />
+                <ComboBox ItemsSource="{Binding Source={x:Static cfg:StyleEditModel.FontWeights}}"
+                          SelectedItem="{Binding FontWeight}">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Converter={StaticResource Inherit}}" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+
+                <TextBlock Style="{StaticResource Caption}" Text="Label position" />
+                <ComboBox ItemsSource="{Binding Source={x:Static cfg:StyleEditModel.LabelPositions}}"
+                          SelectedItem="{Binding LabelPosition}">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Converter={StaticResource Inherit}}" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+
+                <TextBlock Style="{StaticResource Caption}" Text="Padding inside the button" />
+                <TextBox Text="{Binding Padding, UpdateSourceTrigger=LostFocus, TargetNullValue=''}" />
+            </StackPanel>
+        </DataTemplate>
+
+        <!-- ============================ Action parameter ============================ -->
+        <DataTemplate DataType="{x:Type cfg:ActionParameterEditModel}">
+            <StackPanel Margin="0,0,0,8">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                    <TextBlock Text=" *" Foreground="OrangeRed"
+                               Visibility="{Binding IsRequired, Converter={StaticResource Show}}" />
+                </StackPanel>
+                <TextBlock Text="{Binding Description}" Foreground="{StaticResource Muted}"
+                           TextWrapping="Wrap" Margin="0,1,0,3" />
+
+                <TextBox Text="{Binding Value, UpdateSourceTrigger=LostFocus, TargetNullValue=''}"
+                         Tag="{Binding Placeholder}"
+                         Visibility="{Binding IsText, Converter={StaticResource Show}}" />
+
+                <ComboBox ItemsSource="{Binding Choices}"
+                          Text="{Binding Value}"
+                          IsEditable="True"
+                          Visibility="{Binding IsChoice, Converter={StaticResource Show}}" />
+
+                <CheckBox IsChecked="{Binding BooleanValue}"
+                          Content="{Binding Placeholder}"
+                          Visibility="{Binding IsBoolean, Converter={StaticResource Show}}" />
+            </StackPanel>
+        </DataTemplate>
+
+        <!-- ============================ Action ============================ -->
+        <DataTemplate DataType="{x:Type cfg:ActionEditModel}">
+            <StackPanel>
+                <TextBlock Style="{StaticResource Caption}" Text="What it does" />
+                <ComboBox ItemsSource="{Binding AvailableActions}"
+                          SelectedItem="{Binding SelectedAction}"
+                          DisplayMemberPath="Title" />
+                <TextBlock Text="{Binding Description}" Foreground="{StaticResource Muted}"
+                           TextWrapping="Wrap" Margin="0,4,0,8" />
+                <ItemsControl ItemsSource="{Binding Parameters}" />
+            </StackPanel>
+        </DataTemplate>
+
+        <!-- ============================ Button ============================ -->
+        <DataTemplate DataType="{x:Type cfg:ButtonEditModel}">
+            <StackPanel Margin="14">
+                <TextBlock Style="{StaticResource SectionHeader}" Text="Button" Margin="0,0,0,6" />
+
+                <TextBlock Style="{StaticResource Caption}" Text="Label" />
+                <TextBox Text="{Binding Label, UpdateSourceTrigger=PropertyChanged, TargetNullValue=''}" />
+
+                <TextBlock Style="{StaticResource Caption}" Text="Label position" />
+                <ComboBox ItemsSource="{Binding Source={x:Static cfg:StyleEditModel.LabelPositions}}"
+                          SelectedItem="{Binding LabelPosition}">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Converter={StaticResource Inherit}}" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+
+                <Grid Margin="0,8,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <TextBlock Text="Column" Style="{StaticResource Caption}" />
+                    <TextBlock Grid.Column="1" Text="Row" Style="{StaticResource Caption}" />
+                    <TextBlock Grid.Column="2" Text="Width" Style="{StaticResource Caption}" />
+                    <TextBlock Grid.Column="3" Text="Height" Style="{StaticResource Caption}" />
+                    <TextBox Grid.Row="1" Margin="0,0,4,0" Text="{Binding Col, UpdateSourceTrigger=LostFocus}" />
+                    <TextBox Grid.Row="1" Grid.Column="1" Margin="0,0,4,0" Text="{Binding Row, UpdateSourceTrigger=LostFocus}" />
+                    <TextBox Grid.Row="1" Grid.Column="2" Margin="0,0,4,0" Text="{Binding ColSpan, UpdateSourceTrigger=LostFocus}" />
+                    <TextBox Grid.Row="1" Grid.Column="3" Text="{Binding RowSpan, UpdateSourceTrigger=LostFocus}" />
+                </Grid>
+
+                <TextBlock Style="{StaticResource SectionHeader}" Text="Action" />
+                <ContentControl Content="{Binding Action}" />
+
+                <TextBlock Style="{StaticResource SectionHeader}" Text="Look, overriding the theme" />
+                <TextBlock Style="{StaticResource Caption}" TextWrapping="Wrap"
+                           Text="Leave a box empty to use the theme's value." />
+                <ContentControl Content="{Binding Style}" />
+            </StackPanel>
+        </DataTemplate>
+
+        <!-- ============================ Tree ============================
+             These are keyed rather than implicit, because the property panel above already
+             claims the implicit template for each of these types. -->
+        <DataTemplate x:Key="PageNode">
+            <TextBlock Text="{Binding DisplayName}" Foreground="{StaticResource Muted}" />
+        </DataTemplate>
+
+        <HierarchicalDataTemplate x:Key="ProfileNode"
+                                  ItemsSource="{Binding Pages}"
+                                  ItemTemplate="{StaticResource PageNode}">
+            <TextBlock Text="{Binding DisplayName}" />
+        </HierarchicalDataTemplate>
+
+        <DataTemplate x:Key="ThemeNode">
+            <TextBlock Text="{Binding DisplayName}" />
+        </DataTemplate>
+    </Window.Resources>
+
+    <DockPanel>
+        <!-- Toolbar -->
+        <Border DockPanel.Dock="Top" Background="{StaticResource Panel}" Padding="10,8"
+                BorderBrush="{StaticResource Line}" BorderThickness="0,0,0,1">
+            <StackPanel Orientation="Horizontal">
+                <Button Content="Save" Command="{Binding SaveCommand}" MinWidth="70" FontWeight="SemiBold" />
+                <Button Content="Revert" Command="{Binding ReloadCommand}" />
+                <Button Content="Open folder" Command="{Binding OpenFolderCommand}" />
+                <Separator Margin="8,0" />
+                <Button Content="Add profile" Command="{Binding AddProfileCommand}" />
+                <Button Content="Delete profile" Command="{Binding DeleteProfileCommand}" />
+                <Button Content="Add page" Command="{Binding AddPageCommand}" />
+                <Button Content="Delete page" Command="{Binding DeletePageCommand}" />
+                <Separator Margin="8,0" />
+                <Button Content="Add theme" Command="{Binding AddThemeCommand}" />
+                <Button Content="Delete theme" Command="{Binding DeleteThemeCommand}" />
+            </StackPanel>
+        </Border>
+
+        <!-- Status bar -->
+        <Border DockPanel.Dock="Bottom" Background="{StaticResource Panel}" Padding="10,6"
+                BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0">
+            <TextBlock Text="{Binding Status}" Foreground="{StaticResource Muted}" TextTrimming="CharacterEllipsis" />
+        </Border>
+
+        <!-- Validation -->
+        <Border DockPanel.Dock="Bottom" Height="120" Background="#1F2226"
+                BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top" Margin="10,6,10,2" Foreground="{StaticResource Muted}"
+                           Text="Problems" />
+                <ListBox ItemsSource="{Binding Messages}" Background="Transparent" BorderThickness="0"
+                         ScrollViewer.HorizontalScrollBarVisibility="Auto">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal" Margin="4,1">
+                                <Ellipse Width="8" Height="8" Margin="0,0,8,0"
+                                         Fill="{Binding Severity, Converter={StaticResource Severity}}" />
+                                <TextBlock Text="{Binding}" Foreground="#D6DAE0" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </DockPanel>
+        </Border>
+
+        <!-- Tree -->
+        <Border DockPanel.Dock="Left" Width="250" Background="{StaticResource Panel}"
+                BorderBrush="{StaticResource Line}" BorderThickness="0,0,1,0">
+            <TreeView x:Name="Tree" Background="Transparent" BorderThickness="0"
+                      SelectedItemChanged="OnTreeSelectionChanged">
+                <TreeViewItem Header="Settings" x:Name="SettingsNode" />
+                <TreeViewItem Header="Themes" x:Name="ThemesNode" IsExpanded="True"
+                              ItemsSource="{Binding Themes}"
+                              ItemTemplate="{StaticResource ThemeNode}" />
+                <TreeViewItem Header="Profiles" x:Name="ProfilesNode" IsExpanded="True"
+                              ItemsSource="{Binding Profiles}"
+                              ItemTemplate="{StaticResource ProfileNode}" />
+            </TreeView>
+        </Border>
+
+        <!-- Properties -->
+        <Border DockPanel.Dock="Right" Width="380" Background="{StaticResource Panel}"
+                BorderBrush="{StaticResource Line}" BorderThickness="1,0,0,0">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <ContentControl Content="{Binding Selected}" />
+            </ScrollViewer>
+        </Border>
+
+        <!-- Grid preview -->
+        <DockPanel Margin="14">
+            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,10">
+                <TextBlock Text="Click an empty cell to add a button. Drag a button to move it."
+                           Foreground="{StaticResource Muted}" />
+                <Button Content="Duplicate button" Command="{Binding DuplicateButtonCommand}" Margin="16,0,6,0" />
+                <Button Content="Delete button" Command="{Binding DeleteButtonCommand}" />
+            </StackPanel>
+            <cfg:GridEditor x:Name="Preview" />
+        </DockPanel>
+    </DockPanel>
+</Window>

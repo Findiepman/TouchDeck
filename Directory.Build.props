@@ -15,7 +15,8 @@
     <Company>TouchDeck</Company>
     <Version>0.1.0</Version>
     <NeutralLanguage>en</NeutralLanguage>
-    <InvariantGlobalization>true</InvariantGlobalization>
+    <!-- WPF text input needs real culture data, so invariant globalisation stays off. -->
+    <InvariantGlobalization>false</InvariantGlobalization>
   </PropertyGroup>
 
 </Project>
