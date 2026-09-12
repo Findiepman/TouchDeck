@@ -67,15 +67,43 @@ public class EditModelTests
     }
 
     [Fact]
-    public void ParametersTheActionDoesNotKnowAboutAreKept()
+    public void ParametersOfAnActionTypeThatIsNotInstalledAreKept()
     {
+        // Somebody else's build may know "teleport", so nothing of theirs is thrown away.
         var model = new ActionEditModel(
             Registry,
-            Action("""{ "type": "hotkey", "keys": "ctrl+c", "writtenByHand": "keep me" }"""));
+            Action("""{ "type": "teleport", "destination": "moon" }"""));
+
+        Assert.Equal("moon", model.ToConfig().GetString("destination"));
+    }
+
+    [Fact]
+    public void ParametersLeftBehindByTheOldActionTypeAreNotWrittenBack()
+    {
+        // Switching a button from a hotkey to a launch used to leave "keys" in the file,
+        // where it did nothing and piled up with every further change of mind.
+        var model = new ActionEditModel(Registry, Action("""{ "type": "hotkey", "keys": "ctrl+c" }"""))
+        {
+            Type = "launch",
+        };
+
+        model.Parameters.Single(p => p.Name == "path").Value = "notepad.exe";
 
         var written = model.ToConfig();
 
-        Assert.Equal("keep me", written.GetString("writtenByHand"));
+        Assert.Equal("notepad.exe", written.GetString("path"));
+        Assert.False(written.TryGetParameter("keys", out _));
+    }
+
+    [Fact]
+    public void SwitchingTypeAndBackStillRemembersWhatWasThere()
+    {
+        var model = new ActionEditModel(Registry, Action("""{ "type": "hotkey", "keys": "ctrl+c" }"""));
+
+        model.Type = "launch";
+        model.Type = "hotkey";
+
+        Assert.Equal("ctrl+c", model.Parameters.Single(p => p.Name == "keys").Value);
     }
 
     [Fact]

@@ -206,7 +206,7 @@ public sealed class ActionEditModel : ObservableObject
         {
             if (Set(ref _type, value))
             {
-                LoadParameters(BuildObject());
+                LoadParameters(BuildObject(keepUnrecognised: true));
                 Raise(nameof(SelectedAction));
                 Raise(nameof(Description));
                 Raise(nameof(Title));
@@ -236,15 +236,27 @@ public sealed class ActionEditModel : ObservableObject
     public ObservableCollection<ActionParameterEditModel> Parameters { get; } = new();
 
     /// <summary>Builds the config record for this action.</summary>
-    public ActionConfig ToConfig(string jsonPath = "") => ActionConfig.FromObject(BuildObject(), jsonPath);
+    public ActionConfig ToConfig(string jsonPath = "") =>
+        ActionConfig.FromObject(
+            // Parameters the chosen action does not declare are only worth writing when the
+            // action type is not installed, where they are somebody's work on a type this
+            // build does not know. For a known type they do nothing, and writing them back
+            // leaves the leftovers of every type the button used to be sitting in the file.
+            BuildObject(keepUnrecognised: _action is null),
+            jsonPath);
 
-    private JsonObject BuildObject()
+    private JsonObject BuildObject(bool keepUnrecognised)
     {
         var result = new JsonObject { ["type"] = _type };
 
         foreach (var parameter in Parameters)
         {
             parameter.WriteTo(result);
+        }
+
+        if (!keepUnrecognised)
+        {
+            return result;
         }
 
         foreach (var extra in _unrecognised)
