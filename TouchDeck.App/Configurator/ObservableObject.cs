@@ -42,6 +42,14 @@ public abstract class ObservableObject : INotifyPropertyChanged
         Edited?.Invoke(this, EventArgs.Empty);
     }
 
+    /// <summary>
+    /// Raises change notification without counting as an edit. Used for state that belongs
+    /// to the editor rather than to the configuration, such as whether a list is open.
+    /// </summary>
+    /// <param name="name">The property name.</param>
+    protected void RaiseQuiet([CallerMemberName] string? name = null) =>
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+
     /// <summary>Forwards another object's edits as this object's own.</summary>
     /// <param name="child">The nested object to listen to.</param>
     protected void Adopt(ObservableObject? child)

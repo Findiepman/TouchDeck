@@ -26,6 +26,9 @@ internal static class NativeMethods
 
     internal static readonly nint HwndTopmost = -1;
 
+    /// <summary>Asks the window manager for a dark title bar.</summary>
+    internal const int DwmUseImmersiveDarkMode = 20;
+
     internal const uint SwpNoActivate = 0x0010;
     internal const uint SwpShowWindow = 0x0040;
 
@@ -147,6 +150,9 @@ internal static class NativeMethods
 
     [DllImport("shcore.dll")]
     internal static extern int GetDpiForMonitor(nint monitor, int dpiType, out uint dpiX, out uint dpiY);
+
+    [DllImport("dwmapi.dll")]
+    internal static extern int DwmSetWindowAttribute(nint window, int attribute, ref int value, int size);
 
     /// <summary>Reads a window long, using the pointer sized call on 64 bit.</summary>
     internal static nint GetWindowLongPtr(nint window, int index) =>

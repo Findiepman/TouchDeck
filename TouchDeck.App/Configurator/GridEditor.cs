@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Shapes;
 using TouchDeck.App.Rendering;
 using TouchDeck.Core.Configuration;
 
@@ -12,13 +13,19 @@ namespace TouchDeck.App.Configurator;
 /// <param name="Row">Zero based row.</param>
 public sealed record CellEventArgs(int Column, int Row);
 
+/// <summary>Says which two buttons should trade places.</summary>
+/// <param name="Moved">The button that was dragged.</param>
+/// <param name="Other">The button it was dropped onto.</param>
+public sealed record SwapEventArgs(ButtonEditModel Moved, ButtonEditModel Other);
+
 /// <summary>
-/// The visual grid in the config center: the same layout the panel uses, with empty cells
-/// you can click to add a button and buttons you can drag to move.
+/// The deck, drawn with the same layout and theme code the panel itself uses, and made
+/// editable: press an empty square to put a button there, drag one to move it, drop it on
+/// another to trade places.
 /// </summary>
 public sealed class GridEditor : Border
 {
-    /// <summary>How far the pointer must travel before a click becomes a drag.</summary>
+    /// <summary>How far the pointer must travel before a press becomes a drag.</summary>
     private const double DragThreshold = 6;
 
     private readonly DeckGrid _grid = new();
@@ -41,14 +48,23 @@ public sealed class GridEditor : Border
         Background = Brushes.Transparent;
     }
 
-    /// <summary>Raised when a button tile is clicked.</summary>
+    /// <summary>Raised when a button is pressed.</summary>
     public event EventHandler<ButtonEditModel>? ButtonSelected;
 
-    /// <summary>Raised when an empty cell is clicked.</summary>
+    /// <summary>Raised when an empty square is pressed.</summary>
     public event EventHandler<CellEventArgs>? EmptyCellClicked;
 
-    /// <summary>Raised after a button is dragged onto a different cell.</summary>
+    /// <summary>Raised after a button is dragged onto a free square.</summary>
     public event EventHandler<ButtonEditModel>? ButtonMoved;
+
+    /// <summary>Raised after a button is dropped onto another one.</summary>
+    public event EventHandler<SwapEventArgs>? ButtonsSwapped;
+
+    /// <summary>Raised when a button is asked to be removed from its own menu.</summary>
+    public event EventHandler<ButtonEditModel>? ButtonDeleted;
+
+    /// <summary>Raised when a button is asked to be copied from its own menu.</summary>
+    public event EventHandler<ButtonEditModel>? ButtonDuplicated;
 
     /// <summary>The button currently highlighted, or null.</summary>
     public ButtonEditModel? Selected
@@ -56,8 +72,11 @@ public sealed class GridEditor : Border
         get => _selected;
         set
         {
-            _selected = value;
-            Rebuild();
+            if (!ReferenceEquals(_selected, value))
+            {
+                _selected = value;
+                Rebuild();
+            }
         }
     }
 
@@ -65,15 +84,17 @@ public sealed class GridEditor : Border
     /// <param name="profile">The profile the page belongs to, for the grid size.</param>
     /// <param name="page">The page to draw, or null to clear.</param>
     /// <param name="theme">The resolved theme.</param>
-    public void Show(ProfileEditModel? profile, PageEditModel? page, ResolvedTheme theme)
+    /// <param name="selected">The button to highlight, or null.</param>
+    public void Show(ProfileEditModel? profile, PageEditModel? page, ResolvedTheme theme, ButtonEditModel? selected)
     {
         _profile = profile;
         _page = page;
         _theme = theme;
+        _selected = selected;
         Rebuild();
     }
 
-    /// <summary>Redraws every tile from the current models.</summary>
+    /// <summary>Redraws every square from the current models.</summary>
     public void Rebuild()
     {
         _grid.Children.Clear();
@@ -108,80 +129,128 @@ public sealed class GridEditor : Border
         {
             for (var row = 0; row < _profile.Rows; row++)
             {
-                if (taken.Contains((column, row)))
+                if (!taken.Contains((column, row)))
                 {
-                    continue;
+                    _grid.Children.Add(EmptySquare(column, row));
                 }
-
-                _grid.Children.Add(CreateEmptyCell(column, row));
             }
         }
 
         foreach (var button in _page.Buttons)
         {
-            _grid.Children.Add(CreateTile(button));
+            _grid.Children.Add(Tile(button));
         }
     }
 
-    private UIElement CreateEmptyCell(int column, int row)
+    /// <summary>An empty square, which is the invitation to add a button.</summary>
+    private UIElement EmptySquare(int column, int row)
     {
-        var cell = new Border
+        var plus = new Path
         {
-            Background = Brushes.Transparent,
-            BorderBrush = StyleTranslator.Brush("#3322262D"),
-            BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(_theme.Button.CornerRadius),
-            Child = new TextBlock
-            {
-                Text = "+",
-                FontSize = 20,
-                Foreground = StyleTranslator.Brush("#5522262D"),
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center,
-                IsHitTestVisible = false,
-            },
-            Cursor = Cursors.Hand,
-            ToolTip = $"Add a button at column {column}, row {row}",
+            Data = Geometry.Parse("M 0 9 H 18 M 9 0 V 18"),
+            Stroke = Resource("InkFaint", Colors.DimGray),
+            StrokeThickness = 2,
+            StrokeStartLineCap = PenLineCap.Round,
+            StrokeEndLineCap = PenLineCap.Round,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+            IsHitTestVisible = false,
+            Opacity = 0.55,
         };
 
-        cell.MouseLeftButtonUp += (_, _) => EmptyCellClicked?.Invoke(this, new CellEventArgs(column, row));
+        var square = new Border
+        {
+            Background = Brushes.Transparent,
+            BorderBrush = Resource("EdgeSoft", Color.FromRgb(0x2F, 0x2C, 0x2A)),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(_theme.Button.CornerRadius),
+            Cursor = Cursors.Hand,
+            Child = plus,
+            ToolTip = "Add a button here",
+        };
 
-        DeckGrid.SetColumn(cell, column);
-        DeckGrid.SetRow(cell, row);
-        return cell;
+        var signal = Resource("Signal", Colors.DeepPink);
+
+        square.MouseEnter += (_, _) =>
+        {
+            square.BorderBrush = signal;
+            square.Background = Resource("SignalSoft", Color.FromArgb(0x3D, 0xFF, 0x3D, 0x7F));
+            plus.Stroke = signal;
+            plus.Opacity = 1;
+        };
+
+        square.MouseLeave += (_, _) =>
+        {
+            square.BorderBrush = Resource("EdgeSoft", Color.FromRgb(0x2F, 0x2C, 0x2A));
+            square.Background = Brushes.Transparent;
+            plus.Stroke = Resource("InkFaint", Colors.DimGray);
+            plus.Opacity = 0.55;
+        };
+
+        square.PreviewMouseLeftButtonUp += (_, e) =>
+        {
+            e.Handled = true;
+            EmptyCellClicked?.Invoke(this, new CellEventArgs(column, row));
+        };
+
+        DeckGrid.SetColumn(square, column);
+        DeckGrid.SetRow(square, row);
+        return square;
     }
 
-    private UIElement CreateTile(ButtonEditModel button)
+    /// <summary>A button, drawn as the deck would draw it, with a ring when selected.</summary>
+    private UIElement Tile(ButtonEditModel button)
     {
         var style = _theme.Button.With(button.Style.ToConfig());
         var isSelected = ReferenceEquals(button, _selected);
+        var signal = Resource("Signal", Colors.DeepPink);
 
-        var tile = new Border
+        var label = new TextBlock
         {
-            Background = StyleTranslator.Brush(style.Background),
-            BorderBrush = isSelected ? StyleTranslator.Brush("#4C9AFF") : StyleTranslator.Brush(style.Border),
-            BorderThickness = new Thickness(isSelected ? 3 : style.BorderWidth),
-            CornerRadius = new CornerRadius(style.CornerRadius),
-            Padding = new Thickness(style.Padding),
-            Cursor = Cursors.SizeAll,
-            Child = new TextBlock
-            {
-                Text = button.Label ?? string.Empty,
-                Foreground = StyleTranslator.Brush(style.TextColour),
-                FontFamily = StyleTranslator.Font(style.FontFamily),
-                FontSize = style.FontSize,
-                FontWeight = StyleTranslator.Weight(style.FontWeight),
-                TextAlignment = TextAlignment.Center,
-                TextWrapping = TextWrapping.Wrap,
-                VerticalAlignment = StyleTranslator.LabelAlignment(button.LabelPosition ?? style.LabelPosition),
-                IsHitTestVisible = false,
-            },
-            ToolTip = $"{button.DisplayName}  -  {button.Action.Type}",
+            Text = button.Label ?? string.Empty,
+            Foreground = StyleTranslator.Brush(style.TextColour),
+            FontFamily = StyleTranslator.Font(style.FontFamily),
+            FontSize = style.FontSize,
+            FontWeight = StyleTranslator.Weight(style.FontWeight),
+            TextAlignment = TextAlignment.Center,
+            TextWrapping = TextWrapping.Wrap,
+            VerticalAlignment = StyleTranslator.LabelAlignment(button.LabelPosition ?? style.LabelPosition),
+            IsHitTestVisible = false,
         };
 
-        tile.MouseLeftButtonDown += (_, e) => BeginDrag(button, tile, e);
-        tile.MouseMove += (_, e) => ContinueDrag(e);
-        tile.MouseLeftButtonUp += (_, e) => EndDrag(tile, e);
+        var face = new Border
+        {
+            Background = StyleTranslator.Brush(style.Background),
+            BorderBrush = StyleTranslator.Brush(style.Border),
+            BorderThickness = new Thickness(style.BorderWidth),
+            CornerRadius = new CornerRadius(style.CornerRadius),
+            Padding = new Thickness(style.Padding),
+            Child = label,
+        };
+
+        // The ring sits outside the face, so selecting a button never changes how it looks.
+        var tile = new Border
+        {
+            Background = Brushes.Transparent,
+            BorderBrush = isSelected ? signal : Brushes.Transparent,
+            BorderThickness = new Thickness(2),
+            CornerRadius = new CornerRadius(style.CornerRadius + 3),
+            Padding = new Thickness(3),
+            Cursor = Cursors.SizeAll,
+            Child = face,
+            ToolTip = Describe(button),
+            ContextMenu = TileMenu(button),
+        };
+
+        if (!isSelected)
+        {
+            tile.MouseEnter += (_, _) => tile.BorderBrush = Resource("Edge", Color.FromRgb(0x3A, 0x37, 0x35));
+            tile.MouseLeave += (_, _) => tile.BorderBrush = Brushes.Transparent;
+        }
+
+        tile.PreviewMouseLeftButtonDown += (_, e) => BeginDrag(button, tile, e);
+        tile.PreviewMouseMove += (_, e) => ContinueDrag(tile, e);
+        tile.PreviewMouseLeftButtonUp += (_, e) => EndDrag(tile, e);
 
         DeckGrid.SetColumn(tile, button.Col);
         DeckGrid.SetRow(tile, button.Row);
@@ -189,6 +258,26 @@ public sealed class GridEditor : Border
         DeckGrid.SetRowSpan(tile, button.RowSpan);
         return tile;
     }
+
+    private ContextMenu TileMenu(ButtonEditModel button)
+    {
+        var menu = new ContextMenu();
+
+        var duplicate = new MenuItem { Header = "Make a copy" };
+        duplicate.Click += (_, _) => ButtonDuplicated?.Invoke(this, button);
+
+        var remove = new MenuItem { Header = "Delete this button" };
+        remove.Click += (_, _) => ButtonDeleted?.Invoke(this, button);
+
+        menu.Items.Add(duplicate);
+        menu.Items.Add(remove);
+        return menu;
+    }
+
+    private static string Describe(ButtonEditModel button) =>
+        string.IsNullOrWhiteSpace(button.Label)
+            ? button.Action.Title
+            : $"{button.Label}: {button.Action.Title}";
 
     private void BeginDrag(ButtonEditModel button, Border tile, MouseButtonEventArgs e)
     {
@@ -199,7 +288,7 @@ public sealed class GridEditor : Border
         e.Handled = true;
     }
 
-    private void ContinueDrag(MouseEventArgs e)
+    private void ContinueDrag(Border tile, MouseEventArgs e)
     {
         if (_dragging is null || e.LeftButton != MouseButtonState.Pressed)
         {
@@ -207,20 +296,30 @@ public sealed class GridEditor : Border
         }
 
         var position = e.GetPosition(this);
-        if (!_dragStarted
-            && (Math.Abs(position.X - _dragOrigin.X) > DragThreshold
-                || Math.Abs(position.Y - _dragOrigin.Y) > DragThreshold))
+
+        if (_dragStarted)
+        {
+            return;
+        }
+
+        if (Math.Abs(position.X - _dragOrigin.X) > DragThreshold
+            || Math.Abs(position.Y - _dragOrigin.Y) > DragThreshold)
         {
             _dragStarted = true;
+            tile.Opacity = 0.55;
         }
     }
 
     private void EndDrag(Border tile, MouseButtonEventArgs e)
     {
         tile.ReleaseMouseCapture();
+        tile.Opacity = 1;
 
         var button = _dragging;
+        var started = _dragStarted;
+
         _dragging = null;
+        _dragStarted = false;
 
         if (button is null)
         {
@@ -229,22 +328,22 @@ public sealed class GridEditor : Border
 
         e.Handled = true;
 
-        if (!_dragStarted)
+        if (!started)
         {
             Selected = button;
             ButtonSelected?.Invoke(this, button);
             return;
         }
 
-        _dragStarted = false;
-
-        if (!_grid.TryGetCell(e.GetPosition(_grid), out var column, out var row))
+        if (!_grid.TryGetCell(e.GetPosition(_grid), out var column, out var row)
+            || (column == button.Col && row == button.Row))
         {
             return;
         }
 
-        if (column == button.Col && row == button.Row)
+        if (ButtonCovering(column, row, button) is { } other)
         {
+            ButtonsSwapped?.Invoke(this, new SwapEventArgs(button, other));
             return;
         }
 
@@ -258,6 +357,13 @@ public sealed class GridEditor : Border
         Selected = button;
         ButtonMoved?.Invoke(this, button);
     }
+
+    /// <summary>The button occupying a square, ignoring the one being dragged.</summary>
+    private ButtonEditModel? ButtonCovering(int column, int row, ButtonEditModel ignore) =>
+        _page?.Buttons.FirstOrDefault(b =>
+            !ReferenceEquals(b, ignore)
+            && column >= b.Col && column < b.Col + b.ColSpan
+            && row >= b.Row && row < b.Row + b.RowSpan);
 
     /// <summary>True when a button would sit inside the grid and clear of every other button.</summary>
     private bool Fits(ButtonEditModel button, int column, int row)
@@ -290,4 +396,7 @@ public sealed class GridEditor : Border
 
         return true;
     }
+
+    private Brush Resource(string key, Color fallback) =>
+        TryFindResource(key) as Brush ?? new SolidColorBrush(fallback);
 }

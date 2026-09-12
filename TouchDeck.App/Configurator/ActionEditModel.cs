@@ -13,6 +13,7 @@ namespace TouchDeck.App.Configurator;
 public sealed class ActionParameterEditModel : ObservableObject
 {
     private string? _value;
+    private RelayCommand? _browse;
 
     /// <summary>Creates an editable parameter.</summary>
     /// <param name="parameter">What the action says about it.</param>
@@ -55,8 +56,14 @@ public sealed class ActionParameterEditModel : ObservableObject
     /// <summary>True when this parameter is a tick box.</summary>
     public bool IsBoolean => Kind == ActionParameterKind.Boolean;
 
+    /// <summary>True when this parameter is recorded by pressing the keys.</summary>
+    public bool IsKeys => Kind == ActionParameterKind.Keys;
+
     /// <summary>True for everything that is edited as free text.</summary>
-    public bool IsText => !IsChoice && !IsBoolean;
+    public bool IsText => !IsChoice && !IsBoolean && !IsKeys;
+
+    /// <summary>Opens a file or folder picker for path parameters.</summary>
+    public RelayCommand BrowseCommand => _browse ??= new RelayCommand(_ => Browse());
 
     /// <summary>The value as text. Empty means the parameter is left out entirely.</summary>
     public string? Value
@@ -70,6 +77,32 @@ public sealed class ActionParameterEditModel : ObservableObject
     {
         get => bool.TryParse(_value, out var parsed) && parsed;
         set => Value = value ? "true" : "false";
+    }
+
+    private void Browse()
+    {
+        if (Kind == ActionParameterKind.FolderPath)
+        {
+            var folders = new Microsoft.Win32.OpenFolderDialog { Title = $"Choose a folder for {Name}" };
+            if (folders.ShowDialog() == true)
+            {
+                Value = folders.FolderName;
+            }
+
+            return;
+        }
+
+        var files = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = $"Choose a file for {Name}",
+            Filter = "Programs|*.exe;*.com;*.bat;*.cmd;*.lnk|All files|*.*",
+            CheckFileExists = true,
+        };
+
+        if (files.ShowDialog() == true)
+        {
+            Value = files.FileName;
+        }
     }
 
     /// <summary>Writes the value into a JSON object using the right JSON type.</summary>
@@ -104,6 +137,8 @@ public sealed class ActionEditModel : ObservableObject
 
     private IAction? _action;
     private string _type;
+    private string _search = "";
+    private bool _isPicking;
 
     /// <summary>Creates an editable action.</summary>
     /// <param name="registry">Where action types and their parameters come from.</param>
@@ -122,6 +157,47 @@ public sealed class ActionEditModel : ObservableObject
     public IReadOnlyList<IAction> AvailableActions =>
         _registry.All.OrderBy(a => a.Title, StringComparer.CurrentCultureIgnoreCase).ToArray();
 
+    /// <summary>The action types matching <see cref="Search"/>.</summary>
+    public IReadOnlyList<IAction> MatchingActions => AvailableActions
+        .Where(a => _search.Length == 0
+                    || a.Title.Contains(_search, StringComparison.CurrentCultureIgnoreCase)
+                    || a.Type.Contains(_search, StringComparison.OrdinalIgnoreCase)
+                    || a.Description.Contains(_search, StringComparison.CurrentCultureIgnoreCase))
+        .ToArray();
+
+    /// <summary>What has been typed into the action search box.</summary>
+    public string Search
+    {
+        get => _search;
+        set
+        {
+            _search = value ?? "";
+            RaiseQuiet(nameof(Search));
+            RaiseQuiet(nameof(MatchingActions));
+        }
+    }
+
+    /// <summary>True while the list of action types is open.</summary>
+    public bool IsPicking
+    {
+        get => _isPicking;
+        set
+        {
+            if (_isPicking != value)
+            {
+                _isPicking = value;
+                RaiseQuiet(nameof(IsPicking));
+                RaiseQuiet(nameof(IsNotPicking));
+            }
+        }
+    }
+
+    /// <summary>True while the chosen action and its parameters are shown.</summary>
+    public bool IsNotPicking => !_isPicking;
+
+    /// <summary>The name of the chosen action, for the row you click to change it.</summary>
+    public string Title => _action?.Title ?? _type;
+
     /// <summary>The chosen action type.</summary>
     public string Type
     {
@@ -133,6 +209,7 @@ public sealed class ActionEditModel : ObservableObject
                 LoadParameters(BuildObject());
                 Raise(nameof(SelectedAction));
                 Raise(nameof(Description));
+                Raise(nameof(Title));
                 Raise(nameof(Parameters));
             }
         }
@@ -147,6 +224,7 @@ public sealed class ActionEditModel : ObservableObject
             if (value is not null)
             {
                 Type = value.Type;
+                IsPicking = false;
             }
         }
     }

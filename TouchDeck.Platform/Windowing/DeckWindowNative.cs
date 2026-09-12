@@ -74,6 +74,21 @@ public static class DeckWindowNative
         }
     }
 
+    /// <summary>
+    /// Asks Windows for a dark title bar, so a dark window does not wear a white hat.
+    /// Silently does nothing on builds that do not support it.
+    /// </summary>
+    /// <param name="window">The window handle.</param>
+    public static void UseDarkTitleBar(nint window)
+    {
+        var enabled = 1;
+        NativeMethods.DwmSetWindowAttribute(
+            window,
+            NativeMethods.DwmUseImmersiveDarkMode,
+            ref enabled,
+            sizeof(int));
+    }
+
     /// <summary>Places a window so it covers a monitor exactly.</summary>
     /// <param name="window">The window handle.</param>
     /// <param name="monitor">The monitor to cover.</param>

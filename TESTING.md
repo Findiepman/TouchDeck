@@ -55,15 +55,30 @@ If the panel takes focus, the selection does not happen and the Notepad title ba
 
 ## The config center
 
-1. Run `TouchDeck.exe --configure`. If the deck is already running it opens the editor in
-   that same process rather than starting a second one.
-2. Click an empty cell on the grid. A button appears there and is selected.
-3. Change its label. The grid preview updates as you type.
-4. Pick a different action type. The form underneath changes to that type's own parameters,
-   because it is built from what the action declares rather than from a hard coded list.
-5. Drag a button onto a free cell. It moves, and refuses to land on an occupied one.
-6. Press Save. Every file that changed is written, the previous version of each is kept
+```
+TouchDeck.exe --configure
+```
+
+The window is one rail, one deck and one inspector. There is no tree to navigate.
+
+1. The deck in the middle is drawn by the same layout and theme code the panel uses, and
+   takes the shape of the screen it runs on, so it is what the touchscreen will look like.
+2. Press an empty square. A button appears there, the inspector opens on it, and the caret
+   is already in the label box. Type a name.
+3. Under "what it does", press the keys you want to send. The box records the combination
+   rather than asking you to spell it.
+4. Press Change to swap the action for another. The form underneath rebuilds itself from
+   whatever that action declares it needs, so a new action type needs no editor changes.
+5. Drag a button to move it. Drop it on another and they trade places.
+6. Right click a button for copy and delete. Delete removes the selected one, Ctrl+D copies
+   it, Ctrl+S saves, Escape goes back to the add surface.
+7. Colours are picked from a palette. An empty colour means the theme decides, and there is
+   a button in the palette that puts it back to that.
+8. Press Save. Every file that changed is written, the previous version of each is kept
    next to it as `.bak`, and a running deck reloads within about a quarter of a second.
+
+Problems are counted on the rail and only appear when there are some. Press the count to
+read them.
 
 Saving rewrites only the files that changed. A rewritten file loses the comments that were
 in it; the `.bak` beside it still has them.
