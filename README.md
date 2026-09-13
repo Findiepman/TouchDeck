@@ -193,6 +193,12 @@ With both an icon and a label, `top` and `bottom` pin the label to that edge and
 icon the rest of the button; `center` stacks the two and centres them together; `none` drops
 the label and leaves the icon alone.
 
+A button fires on the way down, because with no haptics the only feedback a touchscreen
+gives is how quickly something happens. A button that changes the page is the one exception
+worth knowing about: the action runs immediately, but the panel does not redraw until you
+lift your finger. Redrawing under a live press would take away the button the press belongs
+to, and the rest of that press would land on whatever the new page put in the same square.
+
 ---
 
 ## Icons

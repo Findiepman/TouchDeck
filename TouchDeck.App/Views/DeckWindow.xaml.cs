@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Interop;
+using System.Windows.Threading;
 using Microsoft.Win32;
 using Serilog;
 using TouchDeck.App.Rendering;
@@ -15,9 +16,18 @@ namespace TouchDeck.App.Views;
 /// </summary>
 public partial class DeckWindow : Window
 {
+    /// <summary>
+    /// How long a pending rebuild waits for a finger that is never reported as lifted. Long
+    /// enough that no ordinary press reaches it, short enough that a panel which somehow
+    /// loses track of a press starts drawing again by itself.
+    /// </summary>
+    private static readonly TimeSpan PatienceWithAHeldButton = TimeSpan.FromSeconds(2);
+
     private readonly DeckViewModel _viewModel;
     private readonly IconFactory _icons;
     private readonly ILogger _logger;
+    private readonly SurfaceGate _gate = new();
+    private readonly DispatcherTimer _impatience;
 
     private bool _tooSmallReported;
 
@@ -32,6 +42,23 @@ public partial class DeckWindow : Window
         _logger = logger.ForContext<DeckWindow>();
 
         InitializeComponent();
+
+        _impatience = new DispatcherTimer(DispatcherPriority.Background, Dispatcher)
+        {
+            Interval = PatienceWithAHeldButton,
+        };
+
+        _impatience.Tick += (_, _) =>
+        {
+            _impatience.Stop();
+
+            if (_gate.GiveUp())
+            {
+                _logger.Warning("A button was still down after {Seconds}s, so the panel redrew anyway.",
+                    PatienceWithAHeldButton.TotalSeconds);
+                Refresh();
+            }
+        };
 
         Surface.LayoutComputed += OnLayoutComputed;
         _viewModel.SurfaceChanged += OnSurfaceChanged;
@@ -54,13 +81,13 @@ public partial class DeckWindow : Window
             _logger.Error("The panel could not be marked no activate. Presses may steal focus.");
         }
 
-        Render();
-        PlaceOnTargetMonitor();
+        Refresh();
     }
 
     /// <inheritdoc />
     protected override void OnClosed(EventArgs e)
     {
+        _impatience.Stop();
         SystemEvents.DisplaySettingsChanged -= OnDisplaySettingsChanged;
         _viewModel.SurfaceChanged -= OnSurfaceChanged;
         Surface.LayoutComputed -= OnLayoutComputed;
@@ -77,8 +104,26 @@ public partial class DeckWindow : Window
     private void OnDisplaySettingsChanged(object? sender, EventArgs e) =>
         Dispatcher.BeginInvoke(() => PlaceOnTargetMonitor());
 
+    /// <summary>
+    /// What the panel shows has changed. Rebuilding it under a finger that is still down
+    /// would destroy the button that gesture belongs to, so while anything is pressed this
+    /// only remembers that a rebuild is owed. See <see cref="SurfaceGate"/>.
+    /// </summary>
     private void OnSurfaceChanged(object? sender, EventArgs e)
     {
+        if (_gate.Changed())
+        {
+            Refresh();
+            return;
+        }
+
+        _impatience.Stop();
+        _impatience.Start();
+    }
+
+    private void Refresh()
+    {
+        _impatience.Stop();
         Render();
         PlaceOnTargetMonitor();
     }
@@ -112,7 +157,24 @@ public partial class DeckWindow : Window
             DeckGrid.SetColumnSpan(view, button.SpanColumns);
             DeckGrid.SetRowSpan(view, button.SpanRows);
 
-            view.Pressed += (_, config) => _viewModel.Press(config);
+            view.Pressed += (_, config) =>
+            {
+                _gate.Down();
+                _viewModel.Press(config);
+            };
+
+            view.Released += (_, _) =>
+            {
+                if (!_gate.Up())
+                {
+                    return;
+                }
+
+                // At background priority, so the rest of this gesture is delivered before the
+                // surface it belongs to is taken away. Doing it here, inside the release,
+                // would leave the tail of the gesture with nowhere to go.
+                Dispatcher.BeginInvoke(new Action(Refresh), DispatcherPriority.Background);
+            };
 
             Surface.Children.Add(view);
         }

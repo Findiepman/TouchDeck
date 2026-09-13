@@ -82,6 +82,18 @@ Needs eyes rather than a test, because the point of it is how it looks.
     handy glyphs first and then every glyph the font has, and keeps filling in as you scroll.
     One click on any of them sets it; no holding, no dragging.
 
+## Changing page
+
+The thing to watch for is a press carrying through to the page you arrive on.
+
+1. Make a nav page with a button that switches to another page, and put a button on the
+   destination page in **exactly the same square**.
+2. Press the nav button and hold for a moment before lifting. The page changes as you lift,
+   not as you press, and the button underneath does not fire.
+3. Do it with the mouse as well as with a finger.
+4. Hold the nav button down for several seconds. The page still changes when you let go.
+5. Edit the config while holding a button down. The redraw waits for the release.
+
 ## Surviving a broken config
 
 1. Delete a required field, or put a syntax error in a profile file, and save.
