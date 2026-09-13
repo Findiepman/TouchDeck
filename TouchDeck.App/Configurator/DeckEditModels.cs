@@ -31,14 +31,19 @@ public sealed class ButtonEditModel : ObservableObject
         _labelPosition = button.LabelPosition;
 
         Style = new StyleEditModel(button.Style);
+        Icon = new IconEditModel(button.Icon);
         _action = new ActionEditModel(registry, button.Action);
 
         Adopt(Style);
+        Adopt(Icon);
         Adopt(_action);
     }
 
     /// <summary>Style overrides for this button alone.</summary>
     public StyleEditModel Style { get; }
+
+    /// <summary>What is drawn on the button, above or behind its label.</summary>
+    public IconEditModel Icon { get; }
 
     /// <summary>Every label position, for the dropdown.</summary>
     public static IReadOnlyList<Core.Configuration.LabelPosition?> LabelPositions => StyleEditModel.LabelPositions;
@@ -100,6 +105,7 @@ public sealed class ButtonEditModel : ObservableObject
         RowSpan = _rowSpan == 1 ? null : _rowSpan,
         Label = string.IsNullOrWhiteSpace(_label) ? null : _label,
         LabelPosition = _labelPosition,
+        Icon = Icon.ToConfig(),
         Style = Style.ToConfig(),
         Action = Action.ToConfig(),
     };

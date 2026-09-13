@@ -193,14 +193,16 @@ public static class StarterConfig
         {
           "id": "main",
           "buttons": [
-            { "col": 0, "row": 0, "label": "Copy",  "action": { "type": "hotkey", "keys": "ctrl+c" } },
-            { "col": 1, "row": 0, "label": "Paste", "action": { "type": "hotkey", "keys": "ctrl+v" } },
-            { "col": 2, "row": 0, "label": "Undo",  "action": { "type": "hotkey", "keys": "ctrl+z" } },
-            { "col": 3, "row": 0, "label": "Redo",  "action": { "type": "hotkey", "keys": "ctrl+y" } },
-            { "col": 4, "row": 0, "label": "Save",  "action": { "type": "hotkey", "keys": "ctrl+s" } },
+            // An icon of type glyph is a Segoe Fluent Icons code point. Nothing to install.
+            { "col": 0, "row": 0, "label": "Copy",  "icon": { "type": "glyph", "value": "E8C8" }, "action": { "type": "hotkey", "keys": "ctrl+c" } },
+            { "col": 1, "row": 0, "label": "Paste", "icon": { "type": "glyph", "value": "E77F" }, "action": { "type": "hotkey", "keys": "ctrl+v" } },
+            { "col": 2, "row": 0, "label": "Undo",  "icon": { "type": "glyph", "value": "E7A7" }, "action": { "type": "hotkey", "keys": "ctrl+z" } },
+            { "col": 3, "row": 0, "label": "Redo",  "icon": { "type": "glyph", "value": "E7A6" }, "action": { "type": "hotkey", "keys": "ctrl+y" } },
+            { "col": 4, "row": 0, "label": "Save",  "icon": { "type": "glyph", "value": "E74E" }, "action": { "type": "hotkey", "keys": "ctrl+s" } },
 
+            // Icons are optional, and a button without one is still just its label.
             { "col": 0, "row": 1, "label": "Select All", "action": { "type": "hotkey", "keys": "ctrl+a" } },
-            { "col": 1, "row": 1, "label": "Find",       "action": { "type": "hotkey", "keys": "ctrl+f" } },
+            { "col": 1, "row": 1, "label": "Find",       "icon": { "type": "glyph", "value": "E721" }, "action": { "type": "hotkey", "keys": "ctrl+f" } },
             { "col": 2, "row": 1, "label": "Snip",       "action": { "type": "hotkey", "keys": "win+shift+s" } },
             { "col": 3, "row": 1, "label": "Task Mgr",   "action": { "type": "hotkey", "keys": "ctrl+shift+esc" } },
 
@@ -208,23 +210,25 @@ public static class StarterConfig
             {
               "col": 4, "row": 1,
               "label": "Lock PC",
+              "icon": { "type": "glyph", "value": "E72E" },
               "style": { "background": "#5A1D1D", "textColour": "#FFD9D9" },
               "action": { "type": "hotkey", "keys": "win+l" }
             },
 
-            { "col": 0, "row": 2, "label": "Notepad",  "action": { "type": "launch", "path": "notepad.exe" } },
-            { "col": 1, "row": 2, "label": "Calc",     "action": { "type": "launch", "path": "calc.exe" } },
-            { "col": 2, "row": 2, "label": "Explorer", "action": { "type": "launch", "path": "explorer.exe" } },
+            { "col": 0, "row": 2, "label": "Notepad",  "icon": { "type": "glyph", "value": "E70F" }, "action": { "type": "launch", "path": "notepad.exe" } },
+            { "col": 1, "row": 2, "label": "Calc",     "icon": { "type": "glyph", "value": "E8EF" }, "action": { "type": "launch", "path": "calc.exe" } },
+            { "col": 2, "row": 2, "label": "Explorer", "icon": { "type": "glyph", "value": "E8B7" }, "action": { "type": "launch", "path": "explorer.exe" } },
 
             // Bring the terminal forward if it is already open, rather than opening another.
             {
               "col": 3, "row": 2,
               "label": "Terminal",
+              "icon": { "type": "glyph", "value": "E756" },
               "action": { "type": "launch", "path": "powershell.exe", "focusIfRunning": true }
             },
 
             // A folder is a page you reach from a button, with a way back on it.
-            { "col": 4, "row": 2, "label": "More", "action": { "type": "openFolder", "page": "more" } }
+            { "col": 4, "row": 2, "label": "More", "icon": { "type": "glyph", "value": "E712" }, "action": { "type": "openFolder", "page": "more" } }
           ]
         },
 
@@ -234,7 +238,7 @@ public static class StarterConfig
           "isFolder": true,
 
           // Where the way back sits, and what it says.
-          "backButton": { "col": 4, "row": 2, "label": "Back", "action": { "type": "closeFolder" } },
+          "backButton": { "col": 4, "row": 2, "label": "Back", "icon": { "type": "glyph", "value": "E72B" }, "action": { "type": "closeFolder" } },
 
           "buttons": [
             // Types the text wherever the caret is. Any character works, including emoji.
@@ -314,14 +318,20 @@ public static class StarterConfig
           "id": "main",
           "buttons": [
             // These go through the media keys, so whatever is playing picks them up.
-            { "col": 0, "row": 0, "label": "Previous", "action": { "type": "media", "command": "previous" } },
-            { "col": 1, "row": 0, "label": "Play",     "action": { "type": "media", "command": "playPause" } },
-            { "col": 2, "row": 0, "label": "Next",     "action": { "type": "media", "command": "next" } },
+            { "col": 0, "row": 0, "label": "Previous", "icon": { "type": "glyph", "value": "E892" }, "action": { "type": "media", "command": "previous" } },
+            { "col": 1, "row": 0, "label": "Play",     "icon": { "type": "glyph", "value": "E768" }, "action": { "type": "media", "command": "playPause" } },
+            { "col": 2, "row": 0, "label": "Next",     "icon": { "type": "glyph", "value": "E893" }, "action": { "type": "media", "command": "next" } },
 
-            // These change the Windows volume itself rather than pressing a key.
-            { "col": 0, "row": 1, "label": "Volume -", "action": { "type": "audio", "operation": "adjust", "value": -0.05 } },
-            { "col": 1, "row": 1, "label": "Mute",     "action": { "type": "audio", "operation": "toggleMute" } },
-            { "col": 2, "row": 1, "label": "Back",     "action": { "type": "switchProfile", "profile": "default" } }
+            // These change the Windows volume itself rather than pressing a key. An icon of
+            // type text is literal characters drawn at icon size, for when no glyph fits.
+            {
+              "col": 0, "row": 1,
+              "label": "Volume -",
+              "icon": { "type": "text", "value": "−" },
+              "action": { "type": "audio", "operation": "adjust", "value": -0.05 }
+            },
+            { "col": 1, "row": 1, "label": "Mute",     "icon": { "type": "glyph", "value": "E74F" }, "action": { "type": "audio", "operation": "toggleMute" } },
+            { "col": 2, "row": 1, "label": "Back",     "icon": { "type": "glyph", "value": "E72B" }, "action": { "type": "switchProfile", "profile": "default" } }
           ]
         }
       ]

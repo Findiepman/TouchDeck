@@ -156,7 +156,7 @@ public partial class App : Application
         _startup = new WindowsStartup(_logger);
         ApplyStartupSetting(configuration);
 
-        _window = new DeckWindow(_viewModel, _logger);
+        _window = new DeckWindow(_viewModel, new IconFactory(_paths.IconsDirectory, _logger), _logger);
         _window.Show();
 
         _configService.Changed += OnConfigurationChanged;

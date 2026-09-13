@@ -16,16 +16,19 @@ namespace TouchDeck.App.Views;
 public partial class DeckWindow : Window
 {
     private readonly DeckViewModel _viewModel;
+    private readonly IconFactory _icons;
     private readonly ILogger _logger;
 
     private bool _tooSmallReported;
 
     /// <summary>Creates the panel.</summary>
     /// <param name="viewModel">What to show.</param>
+    /// <param name="icons">Where button icons and the background image are drawn from.</param>
     /// <param name="logger">Where placement and layout problems are recorded.</param>
-    public DeckWindow(DeckViewModel viewModel, ILogger logger)
+    public DeckWindow(DeckViewModel viewModel, IconFactory icons, ILogger logger)
     {
         _viewModel = viewModel;
+        _icons = icons;
         _logger = logger.ForContext<DeckWindow>();
 
         InitializeComponent();
@@ -87,6 +90,7 @@ public partial class DeckWindow : Window
         var grid = _viewModel.Profile?.Grid ?? new GridConfig();
 
         Background = StyleTranslator.Brush(theme.Background);
+        Backdrop.Fill = _icons.Background(theme.BackgroundImage);
 
         Surface.Children.Clear();
         Surface.Columns = grid.Columns;
@@ -101,7 +105,7 @@ public partial class DeckWindow : Window
         foreach (var button in _viewModel.Buttons)
         {
             var style = theme.Button.With(button.Style);
-            var view = new DeckButtonView(button, style, theme.Press);
+            var view = new DeckButtonView(button, style, theme.Press, _icons);
 
             DeckGrid.SetColumn(view, button.Col);
             DeckGrid.SetRow(view, button.Row);

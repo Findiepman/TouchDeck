@@ -36,20 +36,25 @@ What is left after M2 did the switching: automatic profile switching from the fo
 window, using a window event hook rather than polling; swipe between pages with inertia; and
 the page change animation. Pages, folders, back buttons and manual switching are done.
 
-## M4 — Icons and looks
+## M4 — Icons and looks — done apart from svg
 
-Buttons stop being text on a rectangle.
+Buttons stopped being text on a rectangle.
 
-- `icon` with the four kinds the brief names: a png or svg file, a Segoe Fluent Icons glyph,
-  literal text, or none
-- Icon size, colour and tinting, and the icons folder under the config root
-- Label and icon together: `labelPosition` of top, bottom, center or none
-- `backgroundImage` on a theme
-- An icon picker in the config center, so choosing one does not mean typing a path
+- `icon` with three of the four kinds the brief names: an image file, a Segoe Fluent Icons
+  glyph, literal text, or none — done
+- Icon size, colour and tinting, and the icons folder under the config root — done
+- Label and icon together: `labelPosition` of top, bottom, center or none — done
+- `backgroundImage` on a theme — done
+- An icon picker in the config center, so choosing one does not mean typing a path — done,
+  a file dialog that copies into the icons folder and a grid of common glyphs
+- Svg — **not done**, see below
 
-One thing to decide before starting: WPF cannot draw svg on its own. Doing it properly means
-one more dependency, which the brief says to ask about first. The alternatives are to support
-png only, or to rasterise svg at load. I will ask rather than choose.
+The svg question was answered by splitting it off rather than deciding it up front. Png,
+glyphs and text cover the ground without a new dependency, and svg is now a small isolated
+job behind `IconFactory`: an svg is recognised, refused and explained rather than silently
+drawing nothing. If it turns out to be wanted, SharpVectors is the choice — pure managed,
+converts to a WPF `DrawingImage`, so it composes with the existing tinting. Svg.Skia drags
+native binaries in and would make M6's single file publish harder.
 
 ## M5 — Live data
 

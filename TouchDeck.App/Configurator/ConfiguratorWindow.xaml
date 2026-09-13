@@ -186,11 +186,71 @@
                     </ComboBox>
 
                     <TextBlock Text="Typeface" Style="{StaticResource Text.FieldName}" />
-                    <TextBox Text="{Binding FontFamily, UpdateSourceTrigger=LostFocus, TargetNullValue=''}" />
+                    <TextBox Text="{Binding FontFamily, UpdateSourceTrigger=LostFocus, TargetNullValue=''}"
+                             Margin="0,0,0,12" />
+
+                    <TextBlock Text="Label position" Style="{StaticResource Text.FieldName}" />
+                    <ComboBox ItemsSource="{Binding Source={x:Static cfg:StyleEditModel.LabelPositions}}"
+                              SelectedItem="{Binding LabelPosition}"
+                              Margin="0,0,0,12">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Converter={StaticResource Inherit}}" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+
+                    <TextBlock Text="Icon size" Style="{StaticResource Text.FieldName}" />
+                    <TextBox Style="{StaticResource TextBox.Number}"
+                             Text="{Binding IconSize, UpdateSourceTrigger=LostFocus, TargetNullValue=''}"
+                             HorizontalAlignment="Left"
+                             Width="90"
+                             Margin="0,0,0,12" />
+
+                    <TextBlock Text="Icon colour" Style="{StaticResource Text.FieldName}" />
+                    <cfg:ColourPickerBox Colour="{Binding IconColour, Mode=TwoWay}" />
                 </StackPanel>
             </DataTemplate>
 
             <!-- ===================== a button ===================== -->
+            <DataTemplate DataType="{x:Type cfg:IconEditModel}">
+                <StackPanel>
+                    <TextBlock Text="Kind" Style="{StaticResource Text.FieldName}" />
+                    <ComboBox ItemsSource="{Binding Source={x:Static cfg:IconEditModel.Types}}"
+                              SelectedItem="{Binding Type}"
+                              Margin="0,0,0,10" />
+
+                    <StackPanel Visibility="{Binding HasIcon, Converter={StaticResource Show}}">
+                        <TextBlock Text="{Binding ValueLabel}" Style="{StaticResource Text.FieldName}" />
+                        <cfg:IconPickerBox Value="{Binding Value, Mode=TwoWay}"
+                                           Kind="{Binding Type}"
+                                           IconsDirectory="{Binding DataContext.IconsDirectory, RelativeSource={RelativeSource AncestorType=Window}}" />
+                        <TextBlock Text="{Binding ValueHint}" Style="{StaticResource Text.Hint}" Margin="0,6,0,12" />
+
+                        <Grid Margin="0,0,0,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="12" />
+                                <ColumnDefinition Width="2*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <TextBlock Text="Size" Style="{StaticResource Text.FieldName}" />
+                            <TextBlock Grid.Column="2" Text="Colour" Style="{StaticResource Text.FieldName}" />
+                            <TextBox Grid.Row="1" Style="{StaticResource TextBox.Number}"
+                                     Text="{Binding Size, UpdateSourceTrigger=LostFocus, TargetNullValue=''}" />
+                            <cfg:ColourPickerBox Grid.Row="1" Grid.Column="2" Colour="{Binding Colour, Mode=TwoWay}" />
+                        </Grid>
+
+                        <TextBlock Text="An image keeps its own colours unless you set one here, which tints it instead."
+                                   Style="{StaticResource Text.Hint}"
+                                   Visibility="{Binding IsFile, Converter={StaticResource Show}}" />
+                    </StackPanel>
+                </StackPanel>
+            </DataTemplate>
+
             <DataTemplate DataType="{x:Type cfg:ButtonEditModel}">
                 <StackPanel Margin="20,18,20,24">
                     <TextBlock Text="Button" Style="{StaticResource Legend.Panel}" Margin="0,0,0,16" />
@@ -199,6 +259,9 @@
                     <TextBox x:Name="LabelBox"
                              Text="{Binding Label, UpdateSourceTrigger=PropertyChanged, TargetNullValue=''}"
                              Margin="0,0,0,20" />
+
+                    <TextBlock Text="Icon" Style="{StaticResource Legend.Section}" />
+                    <ContentControl Content="{Binding Icon}" Margin="0,0,0,18" />
 
                     <TextBlock Text="What it does" Style="{StaticResource Legend.Section}" />
                     <ContentControl Content="{Binding Action}" Margin="0,0,0,8" />
@@ -384,7 +447,14 @@
                     <TextBox Text="{Binding Inherits, UpdateSourceTrigger=LostFocus, TargetNullValue=''}" Margin="0,0,0,12" />
 
                     <TextBlock Text="Screen background" Style="{StaticResource Text.FieldName}" />
-                    <cfg:ColourPickerBox Colour="{Binding Background, Mode=TwoWay}" Margin="0,0,0,14" />
+                    <cfg:ColourPickerBox Colour="{Binding Background, Mode=TwoWay}" Margin="0,0,0,12" />
+
+                    <TextBlock Text="Background image" Style="{StaticResource Text.FieldName}" />
+                    <cfg:IconPickerBox Value="{Binding BackgroundImage, Mode=TwoWay}"
+                                       Kind="File"
+                                       IconsDirectory="{Binding DataContext.IconsDirectory, RelativeSource={RelativeSource AncestorType=Window}}" />
+                    <TextBlock Text="Drawn over the colour and cropped to fill the screen. Leave it empty for none."
+                               Style="{StaticResource Text.Hint}" Margin="0,6,0,14" />
 
                     <Grid>
                         <Grid.ColumnDefinitions>

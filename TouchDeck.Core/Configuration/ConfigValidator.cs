@@ -199,6 +199,8 @@ public sealed class ConfigValidator
             }
         }
 
+        ValidateIcon(button.Icon, $"{path}.icon", file, messages);
+
         var actions = new (ActionConfig? Action, string Slot)[]
         {
             (button.Action, "action"),
@@ -229,6 +231,72 @@ public sealed class ConfigValidator
                     $"{path}.{slot}",
                     $"There is no action type called \"{action.Type}\"."));
             }
+        }
+    }
+
+    /// <summary>
+    /// Checks an icon can actually be drawn. Everything here is a warning: a button whose
+    /// icon is missing still works, it just shows its label instead.
+    /// </summary>
+    private void ValidateIcon(
+        IconConfig? icon,
+        string path,
+        string file,
+        List<ValidationMessage> messages)
+    {
+        if (icon is null || icon.Type == IconKind.None)
+        {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(icon.Value))
+        {
+            messages.Add(ValidationMessage.Warning(
+                file,
+                $"{path}.value",
+                $"An icon of type \"{icon.Type.ToString().ToLowerInvariant()}\" needs a value."));
+            return;
+        }
+
+        if (icon.Type != IconKind.File || IconFile.IsInterpolated(icon.Value))
+        {
+            return;
+        }
+
+        if (IconFile.Resolve(_paths.IconsDirectory, icon.Value) is not { } resolved)
+        {
+            messages.Add(ValidationMessage.Warning(
+                file,
+                $"{path}.value",
+                $"\"{icon.Value}\" is not a usable path."));
+            return;
+        }
+
+        if (IconFile.IsSvg(resolved))
+        {
+            messages.Add(ValidationMessage.Warning(
+                file,
+                $"{path}.value",
+                "Svg icons are not supported yet. Use a png, or an icon of type \"glyph\"."));
+            return;
+        }
+
+        if (!IconFile.IsSupported(resolved))
+        {
+            messages.Add(ValidationMessage.Warning(
+                file,
+                $"{path}.value",
+                $"\"{icon.Value}\" is not an image TouchDeck can read. " +
+                $"Supported: {string.Join(", ", IconFile.SupportedExtensions)}."));
+            return;
+        }
+
+        if (!File.Exists(resolved))
+        {
+            messages.Add(ValidationMessage.Warning(
+                file,
+                $"{path}.value",
+                $"There is no icon at \"{_paths.Describe(resolved)}\"."));
         }
     }
 }

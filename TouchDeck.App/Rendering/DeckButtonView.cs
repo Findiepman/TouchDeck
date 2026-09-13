@@ -24,7 +24,8 @@ public sealed class DeckButtonView : Border
     /// <param name="config">The button as configured.</param>
     /// <param name="style">The style after theme and per button overrides are merged.</param>
     /// <param name="press">The press animation from the theme.</param>
-    public DeckButtonView(ButtonConfig config, ResolvedButtonStyle style, ResolvedPressStyle press)
+    /// <param name="icons">Where the button's icon is drawn from.</param>
+    public DeckButtonView(ButtonConfig config, ResolvedButtonStyle style, ResolvedPressStyle press, IconFactory icons)
     {
         Config = config;
         _style = style;
@@ -56,14 +57,10 @@ public sealed class DeckButtonView : Border
             TextAlignment = TextAlignment.Center,
             TextWrapping = TextWrapping.Wrap,
             HorizontalAlignment = HorizontalAlignment.Stretch,
-            VerticalAlignment = StyleTranslator.LabelAlignment(LabelPosition),
             IsHitTestVisible = false,
         };
 
-        if (LabelPosition != Core.Configuration.LabelPosition.None)
-        {
-            Child = _label;
-        }
+        Child = ButtonContent.Compose(_label, icons.Create(config.Icon, style), LabelPosition);
     }
 
     /// <summary>Raised the moment the button is touched or clicked.</summary>

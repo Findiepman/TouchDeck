@@ -4,6 +4,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
+using TouchDeck.App.Rendering;
 using TouchDeck.Core.Actions;
 using TouchDeck.Platform.Windowing;
 
@@ -29,6 +30,8 @@ public partial class ConfiguratorWindow : Window
         _viewModel.PageChanged += (_, _) => RefreshDeck();
         _viewModel.DocumentChanged += (_, _) => RefreshDeck();
         _viewModel.ButtonAdded += (_, _) => FocusLabel();
+
+        Preview.Icons = new IconFactory(viewModel.IconsDirectory, Serilog.Core.Logger.None);
 
         Preview.ButtonSelected += (_, button) => _viewModel.Inspecting = button;
         Preview.EmptyCellClicked += (_, cell) => _viewModel.AddButtonAt(cell.Column, cell.Row);

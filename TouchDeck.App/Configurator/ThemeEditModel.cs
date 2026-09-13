@@ -8,6 +8,7 @@ public sealed class ThemeEditModel : ObservableObject
     private string _name;
     private string? _inherits;
     private string? _background;
+    private string? _backgroundImage;
     private double? _gap;
     private double? _padding;
     private double? _pressScale;
@@ -24,6 +25,7 @@ public sealed class ThemeEditModel : ObservableObject
         _name = name;
         _inherits = theme.Inherits;
         _background = theme.Background;
+        _backgroundImage = theme.BackgroundImage;
         _gap = theme.Gap;
         _padding = theme.Padding;
         _pressScale = theme.Press?.Scale;
@@ -72,6 +74,16 @@ public sealed class ThemeEditModel : ObservableObject
     {
         get => _background;
         set => Set(ref _background, string.IsNullOrWhiteSpace(value) ? null : value.Trim());
+    }
+
+    /// <summary>
+    /// An image drawn over the background colour, or null for none. Relative paths are read
+    /// from the icons folder, the same rule icons follow.
+    /// </summary>
+    public string? BackgroundImage
+    {
+        get => _backgroundImage;
+        set => Set(ref _backgroundImage, string.IsNullOrWhiteSpace(value) ? null : value.Trim());
     }
 
     /// <summary>Space between cells.</summary>
@@ -146,6 +158,7 @@ public sealed class ThemeEditModel : ObservableObject
         {
             Inherits = _inherits,
             Background = _background,
+            BackgroundImage = _backgroundImage,
             Gap = _gap,
             Padding = _padding,
             Button = Button.ToConfig(),

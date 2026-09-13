@@ -17,6 +17,8 @@
         Height="480">
 
     <Grid>
+        <!-- Sits over the window background colour so a transparent image blends with it. -->
+        <Rectangle x:Name="Backdrop" />
         <rendering:DeckGrid x:Name="Surface" />
     </Grid>
 </Window>

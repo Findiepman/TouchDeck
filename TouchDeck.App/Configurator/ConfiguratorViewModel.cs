@@ -106,6 +106,9 @@ public sealed class ConfiguratorViewModel : ViewModelBase
     /// <summary>Opens the config folder in Explorer.</summary>
     public RelayCommand ShowFilesCommand { get; }
 
+    /// <summary>Where icon files live, so the icon picker can browse and copy into it.</summary>
+    public string IconsDirectory => _paths.IconsDirectory;
+
     /// <summary>Shows global settings in the inspector.</summary>
     public RelayCommand EditSettingsCommand { get; }
 

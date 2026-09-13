@@ -44,6 +44,24 @@ If the panel takes focus, the selection does not happen and the Notepad title ba
 3. Save. The panel redraws within about a quarter of a second, without flickering and
    without the window being recreated.
 
+## Icons
+
+Needs eyes rather than a test, because the point of it is how it looks.
+
+1. `TouchDeck.exe --config <a throwaway folder>` writes a starter config whose buttons carry
+   glyph icons. Every one should draw a real symbol, not an empty box. An empty box means
+   the Segoe Fluent Icons font is missing and Segoe MDL2 Assets did not have that code point.
+2. Drop a png into the icons folder and point a button at it with
+   `"icon": { "type": "file", "value": "yours.png" }`. It keeps its own colours.
+3. Add `"colour": "#46B96B"` to that icon. It turns into a green silhouette of itself.
+4. Set `labelPosition` on a button to each of `top`, `bottom`, `center` and `none`. Top and
+   bottom pin the label to that edge, center stacks icon and label in the middle, none drops
+   the label.
+5. Point an icon at a file that does not exist, and at an `.svg`. Both leave the button
+   showing its label, and both are named in the log and in the config center's warnings.
+6. Set `backgroundImage` on the theme. It fills the screen behind the grid, cropped rather
+   than stretched.
+
 ## Surviving a broken config
 
 1. Delete a required field, or put a syntax error in a profile file, and save.

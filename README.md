@@ -184,8 +184,49 @@ One file per profile in `profiles\`. A profile is one grid, one theme and one or
 | `colSpan`, `rowSpan` | How many squares it covers. Default 1. |
 | `label` | The text on it. |
 | `labelPosition` | `top`, `bottom`, `center` or `none`. |
+| `icon` | What is drawn on it. See below. |
 | `style` | Any subset of the theme's button block, for this button only. |
 | `action` | What pressing it does. |
+
+With both an icon and a label, `top` and `bottom` pin the label to that edge and give the
+icon the rest of the button; `center` stacks the two and centres them together; `none` drops
+the label and leaves the icon alone.
+
+---
+
+## Icons
+
+```json
+{ "col": 0, "row": 0, "label": "Mute",
+  "icon": { "type": "glyph", "value": "E74F", "colour": "#E4483C" },
+  "action": { "type": "audio", "operation": "toggleMute" } }
+```
+
+| Property | Meaning |
+| --- | --- |
+| `type` | `file`, `glyph`, `text` or `none`. |
+| `value` | What to draw, meaning depends on `type`. |
+| `size` | How big, in the same units as the rest of the theme. Defaults to the theme's `iconSize`. |
+| `colour` | See below; defaults to the theme's `iconColour`. |
+
+**`glyph`** is a Segoe Fluent Icons character, which ships with Windows and needs nothing
+installed. Give the character itself or its code point, written any of the usual ways:
+`E713`, `0xE713`, `U+E713`. The config center has a grid of the common ones.
+
+**`file`** is an image. A relative path is read from the icons folder next to `config.json`,
+so `"value": "discord.png"` means `icons\discord.png`; an absolute path also works, and
+environment variables are expanded. Png, jpg, bmp, gif, tif and ico are understood. **Svg is
+not yet**, and says so rather than drawing nothing silently.
+
+**`text`** is literal characters drawn at icon size, for when no glyph fits.
+
+An image keeps its own colours unless you set `colour` on the icon, which paints that colour
+through the image instead. Glyphs and text always take their colour from `colour` or the
+theme. That is why the theme wide `iconColour` does not flatten every app logo on the deck
+into one grey silhouette.
+
+An icon that cannot be found leaves the button showing its label, and the problem is
+reported as a warning rather than stopping the deck.
 
 ---
 
@@ -213,6 +254,8 @@ button can override any single value with its own `style`.
         "fontSize": 13,
         "fontWeight": "SemiBold",
         "labelPosition": "center",
+        "iconSize": 40,
+        "iconColour": "#CFD4DC",
         "padding": 8
       },
       "press": { "scale": 0.94, "durationMs": 70, "easing": "cubicOut" }
@@ -225,6 +268,10 @@ button can override any single value with its own `style`.
   }
 }
 ```
+
+A theme can also set `backgroundImage`, which is drawn over `background` and cropped to fill
+the screen. It follows the same path rules as a file icon, so a relative path is read from
+the icons folder.
 
 Colours are hex, with optional alpha: `#RGB`, `#RRGGBB` or `#AARRGGBB`. A theme can
 `inherit` from another and state only what differs. `press` is what a press looks like,
@@ -381,7 +428,7 @@ public sealed class BeepAction : IAction
 These parse without complaint but do nothing, because the milestone that implements them has
 not landed. They are in `MILESTONES.md`.
 
-- `icon` on a button, and `backgroundImage` on a theme
+- Svg icons. Png, glyphs and text all work; svg needs a drawing library WPF does not have.
 - `releaseAction`, `longPressAction`, `doubleTapAction`, `repeat`, `confirm`
 - `state`, `visibleWhen`, `enabledWhen`, and providers such as `system.cpu` or `obs.currentScene`
 - `autoSwitch` on a profile, and swiping between pages

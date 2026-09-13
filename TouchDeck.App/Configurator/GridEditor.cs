@@ -48,6 +48,13 @@ public sealed class GridEditor : Border
         Background = Brushes.Transparent;
     }
 
+    /// <summary>
+    /// Where button icons are drawn from. Problems are left unreported here on purpose: the
+    /// validator already lists them in the warnings panel, and the preview saying the same
+    /// thing again in a log nobody has open helps no one.
+    /// </summary>
+    public IconFactory? Icons { get; set; }
+
     /// <summary>Raised when a button is pressed.</summary>
     public event EventHandler<ButtonEditModel>? ButtonSelected;
 
@@ -198,6 +205,16 @@ public sealed class GridEditor : Border
         return square;
     }
 
+    /// <summary>
+    /// Shrinks an icon to suit a preview tile, which is a fraction of the size of a real
+    /// button. The configured size still shows through as relative size, so a deliberately
+    /// large icon still reads as large here.
+    /// </summary>
+    /// <param name="icon">The icon as configured, or null.</param>
+    /// <param name="style">The style the icon would be drawn with on the deck.</param>
+    private static IconConfig? PreviewIcon(IconConfig? icon, ResolvedButtonStyle style) =>
+        icon is null ? null : icon with { Size = Math.Clamp((icon.Size ?? style.IconSize) * 0.45, 10, 24) };
+
     /// <summary>A button, drawn as the deck would draw it, with a ring when selected.</summary>
     private UIElement Tile(ButtonEditModel button)
     {
@@ -214,9 +231,10 @@ public sealed class GridEditor : Border
             FontWeight = StyleTranslator.Weight(style.FontWeight),
             TextAlignment = TextAlignment.Center,
             TextWrapping = TextWrapping.Wrap,
-            VerticalAlignment = StyleTranslator.LabelAlignment(button.LabelPosition ?? style.LabelPosition),
             IsHitTestVisible = false,
         };
+
+        var icon = Icons?.Create(PreviewIcon(button.Icon.ToConfig(), style), style);
 
         var face = new Border
         {
@@ -225,7 +243,7 @@ public sealed class GridEditor : Border
             BorderThickness = new Thickness(style.BorderWidth),
             CornerRadius = new CornerRadius(style.CornerRadius),
             Padding = new Thickness(style.Padding),
-            Child = label,
+            Child = ButtonContent.Compose(label, icon, button.LabelPosition ?? style.LabelPosition),
         };
 
         // The ring sits outside the face, so selecting a button never changes how it looks.
