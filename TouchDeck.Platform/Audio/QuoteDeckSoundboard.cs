@@ -233,6 +233,19 @@ public sealed class QuoteDeckSoundboard : ISoundboardPlayer, IDisposable
 
         foreach (var name in wanted)
         {
+            // "default" means whatever Windows is playing through at the moment. It is there
+            // so that a button can send one copy to a virtual microphone and one copy to the
+            // person pressing it, without naming a headset that may not be the one in use.
+            if (IsDefault(name))
+            {
+                if (!resolved.Contains(null))
+                {
+                    resolved.Add(null);
+                }
+
+                continue;
+            }
+
             var match = known.FirstOrDefault(
                 entry => !claimed.Contains(entry.Id)
                     && entry.Name.Contains(name, StringComparison.OrdinalIgnoreCase));
@@ -270,6 +283,11 @@ public sealed class QuoteDeckSoundboard : ISoundboardPlayer, IDisposable
 
         return resolved;
     }
+
+    /// <summary>Whether a name in the device list means the default playback device.</summary>
+    /// <param name="name">One entry from the configured device list.</param>
+    public static bool IsDefault(string name) =>
+        name.Trim().Equals("default", StringComparison.OrdinalIgnoreCase);
 
     private string Draw(string category, IReadOnlyList<string> ids)
     {

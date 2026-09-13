@@ -6,6 +6,7 @@ using TouchDeck.Core.Actions;
 using TouchDeck.Core.Configuration;
 using TouchDeck.Core.Expressions;
 using TouchDeck.Core.Variables;
+using TouchDeck.Platform.Audio;
 using Xunit;
 
 namespace TouchDeck.Tests;
@@ -153,6 +154,22 @@ public sealed class SoundboardActionTests
         Assert.False(await Run("""{ "type": "soundboard", "category": "hype" }"""));
         Assert.Equal("something specific went wrong", _lastFailure);
     }
+
+    [Theory]
+    [InlineData("default")]
+    [InlineData("Default")]
+    [InlineData("  DEFAULT  ")]
+    public void TheWordDefaultStandsForWhateverWindowsIsPlayingThrough(string written) =>
+        Assert.True(QuoteDeckSoundboard.IsDefault(written));
+
+    [Theory]
+    [InlineData("CABLE Input")]
+    [InlineData("Sonar - Microphone")]
+    [InlineData("defaults")]
+    [InlineData("my default headset")]
+    [InlineData("")]
+    public void AnythingElseIsADeviceNameToMatch(string written) =>
+        Assert.False(QuoteDeckSoundboard.IsDefault(written));
 
     [Fact]
     public void TheParametersAreDescribedForTheConfigCenter()

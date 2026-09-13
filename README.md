@@ -363,9 +363,10 @@ Leave `id` out and the button draws from a shuffle bag, so every line in the cat
 heard before any of them repeats and the same one never comes up twice in a row. The bag is
 kept in `%APPDATA%\QuoteDeck\state` and survives a restart.
 
-`devices` are substrings of the output device names, matched case insensitively. Listing two
-plays the clip to both at once. Leave it out and the clip goes to your default playback
-device, which means you hear it and nobody else does. `policy` says what a second press does
+`devices` are substrings of the output device names, matched case insensitively, and the word
+`default` stands for whatever Windows is playing through at the time. Listing two plays the
+clip to both at once. Leave it out and the clip goes to your default playback device, which
+means you hear it and nobody else does. `policy` says what a second press does
 while a clip is still playing: `cutoff` stops the first one, `overlap` lets them stack,
 `ignore` drops the press.
 
@@ -384,16 +385,18 @@ Once you have one:
 1. Enable it. Windows lists these under Sound settings, and they are easy to leave switched
    off; a disabled one is named in the log when a button tries to use it.
 2. Set your voice chat's microphone to the virtual device's **recording** side.
-3. Name the virtual device's **playback** side in `devices`, along with whatever you listen
-   through, so you hear the clip too:
+3. Name the virtual device's **playback** side in `devices`, and `default` beside it so you
+   hear the clip too:
 
 ```json
 { "type": "soundboard", "category": "insults", "id": "rage",
-  "devices": ["Virtual Cable", "Headphones"] }
+  "devices": ["Virtual Cable", "default"] }
 ```
 
 Listing both is the point: one copy goes to the people you are talking to, one copy goes to
-you. Name only the virtual device and you will not hear your own soundboard.
+you. Name only the virtual device and you will not hear your own soundboard. `default` is
+worth using for the second one rather than naming a headset, because it follows whichever
+one you are actually wearing.
 
 If you also want your voice and the clips mixed into one microphone, that is the virtual
 device's job rather than TouchDeck's, and it is what VoiceMeeter and the vendor suites are

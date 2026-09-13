@@ -138,18 +138,20 @@ Needs QuoteDeck to have built its clips first, and ears.
    same one never comes twice in a row.
 2. Restart the deck and keep pressing. It carries on where the bag left off rather than
    starting the category again.
-3. Name two devices in `devices`, one of them a virtual cable. The clip arrives on both at
+3. Put `"default"` in `devices` and change the Windows playback device while the deck runs.
+   The clip follows the new one without the config being touched.
+4. Name two devices in `devices`, one of them a virtual cable. The clip arrives on both at
    once, and whoever is listening through the cable hears it.
-4. Name a device that exists but is switched off in Windows. The log names it and says it is
+5. Name a device that exists but is switched off in Windows. The log names it and says it is
    turned off, rather than claiming there is no such device, and the clip still plays on the
    default device.
-5. Press the button again while a clip is playing. With `cutoff` the first one stops, with
+6. Press the button again while a clip is playing. With `cutoff` the first one stops, with
    `overlap` they stack, with `ignore` the press does nothing.
-6. Rename a category in the manifest and rebuild. The deck picks the new manifest up without
+7. Rename a category in the manifest and rebuild. The deck picks the new manifest up without
    a restart.
-7. Point a button at a category that does not exist. It flashes its error state and the log
+8. Point a button at a category that does not exist. It flashes its error state and the log
    says which category was asked for, rather than going quietly silent.
-8. Move `%APPDATA%\QuoteDeck` out of the way and press a soundboard button. It says there is
+9. Move `%APPDATA%\QuoteDeck` out of the way and press a soundboard button. It says there is
    no manifest and names the command that builds one.
 
 ## Surviving a broken config

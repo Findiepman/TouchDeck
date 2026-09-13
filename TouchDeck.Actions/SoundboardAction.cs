@@ -17,7 +17,9 @@ namespace TouchDeck.Actions;
 /// heard before any repeats and the same one never plays twice in a row.
 /// <para>
 /// Listing two devices plays the clip to both at once, which is how it reaches a virtual
-/// cable and the user's headphones together.
+/// microphone and the user's own headphones together. The word <c>default</c> stands for
+/// whatever Windows is playing through, so the second copy does not have to name a headset
+/// that might not be the one plugged in.
 /// </para>
 /// </remarks>
 public sealed class SoundboardAction : IAction
@@ -36,7 +38,7 @@ public sealed class SoundboardAction : IAction
     {
         ActionParameter.Require("category", ActionParameterKind.Text, "The QuoteDeck category to play from."),
         ActionParameter.Optional("id", ActionParameterKind.Text, "One specific clip, instead of a shuffled one."),
-        ActionParameter.Optional("devices", ActionParameterKind.Text, "Output device names to play to at once. Leave empty for the default device."),
+        ActionParameter.Optional("devices", ActionParameterKind.Text, "Output device names to play to at once, where \"default\" means whatever Windows is using. Leave empty for the default device."),
         ActionParameter.Optional("volume", ActionParameterKind.Number, "Playback volume from 0 to 1.", "0.9"),
         ActionParameter.OneOf("policy", "What a press does while a clip is already playing.", false, ActionContext.ChoiceList<SoundboardPolicy>()),
     };
