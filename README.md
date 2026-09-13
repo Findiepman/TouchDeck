@@ -509,12 +509,13 @@ is on another screen, so every tap used to drag the pointer off the screen you w
 at, and a game that steers its camera by mouse movement reads that jump as one enormous
 flick.
 
-Two separate things did that, so there are two things stopping it. The panel asks Windows for
-touch input, which stops the window manager synthesising anything, and WPF's own touch stack
-is switched off, because it talks to the Windows tablet input service and that service
-promotes touch to the mouse on its own account. The startup log says both. Nothing is lost:
-the panel reads touch from the window messages itself, and the config center still works
-under a finger.
+Touch reaches a window as pointer messages, and it is leaving those unhandled that makes
+Windows move the pointer and synthesise a click. The panel consumes them and reads the
+contacts out of them itself. WPF's own touch stack is switched off as well, because it talks
+to the Windows tablet input service and that service promotes touch to the mouse on its own
+account; both are needed, and the startup log says so. Nothing is lost by any of it: the
+panel gets its presses from the pointer messages, and the config center still works under a
+finger.
 
 `behaviour.claimTouchInput` turns the whole thing off if you ever want the old behaviour, and
 `tools\pointer-watch.ps1` will tell you whether tapping is really what is moving the pointer.

@@ -65,6 +65,14 @@ internal static class NativeMethods
     /// <summary>Touch contacts, sent only to a window that asked for them.</summary>
     internal const int WmTouch = 0x0240;
 
+    /// <summary>
+    /// Pointer messages, which is how Windows really delivers touch. Every window gets them;
+    /// a window that leaves one unhandled is a window Windows will make a mouse click out of.
+    /// </summary>
+    internal const int WmPointerUpdate = 0x0245;
+    internal const int WmPointerDown = 0x0246;
+    internal const int WmPointerUp = 0x0247;
+
     internal const uint TouchEventMove = 0x0001;
     internal const uint TouchEventDown = 0x0002;
     internal const uint TouchEventUp = 0x0004;

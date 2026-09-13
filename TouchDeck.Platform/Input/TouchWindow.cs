@@ -1,4 +1,4 @@
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using Serilog;
 using TouchDeck.Platform.Native;
 
@@ -29,14 +29,22 @@ public readonly record struct TouchContact(int Id, double X, double Y, TouchPhas
 /// clicks.
 /// </summary>
 /// <remarks>
-/// A window that has not asked for touch gets mouse emulation instead: Windows moves the
+/// A window that leaves touch unhandled gets mouse emulation instead: Windows moves the
 /// mouse pointer to wherever the finger landed and synthesises a click there. On a deck that
 /// is a real problem rather than a cosmetic one. The panel is on a second screen, so every
 /// tap teleports the pointer off the screen the user is looking at, and a game that steers
 /// the camera by mouse movement reads that jump as an enormous flick of the mouse.
 ///
-/// Asking for the contacts stops all of that at the source. Nothing is moved, nothing is
-/// synthesised, and the tap arrives as what it is.
+/// **The pointer messages are the ones that matter.** Touch reaches a window as
+/// <c>WM_POINTERDOWN</c>, <c>WM_POINTERUPDATE</c> and <c>WM_POINTERUP</c>, and it is leaving
+/// those unhandled that makes Windows produce the pointer move and the click. Registering
+/// for <c>WM_TOUCH</c> does not stop it: measured on a real touchscreen, the contacts arrive
+/// as <c>WM_TOUCH</c> and Windows synthesises a mouse press as well, whatever registration
+/// flags are used. Handling the pointer messages stops both.
+///
+/// <c>WM_TOUCH</c> is kept as a second way in, for a machine where the pointer messages do
+/// not arrive. A press that comes down both routes is harmless, because pressing a button
+/// that is already down does nothing.
 /// </remarks>
 public static class TouchWindow
 {
@@ -57,11 +65,11 @@ public static class TouchWindow
             return true;
         }
 
-        // Not fatal: without this the deck still works, it just moves the pointer when
-        // touched, which is the thing this was for.
+        // Not fatal, and not the main defence either: the pointer messages arrive whether or
+        // not this works, and they are what stops the pointer moving.
         logger.Warning(
-            "Windows would not give this window touch input (error {Error}), so a tap will " +
-            "still move the mouse pointer.",
+            "Windows would not give this window WM_TOUCH (error {Error}). Touch still works " +
+            "through the pointer messages.",
             Marshal.GetLastWin32Error());
 
         return false;
@@ -135,6 +143,50 @@ public static class TouchWindow
             // message handled makes closing it ours to do.
             NativeMethods.CloseTouchInputHandle(input);
         }
+    }
+
+    /// <summary>
+    /// Reads a contact out of a pointer message, or null when the message is not one.
+    /// </summary>
+    /// <remarks>
+    /// Every one of these that comes back non-null has to be marked handled, the moves
+    /// included. An unhandled pointer message is exactly what Windows turns into a mouse
+    /// click, so ignoring the moves because there is nothing to do with them would leave the
+    /// pointer being dragged across the screen anyway.
+    /// </remarks>
+    /// <param name="window">The window the message arrived at.</param>
+    /// <param name="message">The message id.</param>
+    /// <param name="wParam">Its wParam, whose low word identifies the contact.</param>
+    /// <param name="lParam">Its lParam, which is the position in screen pixels.</param>
+    public static TouchContact? ReadPointer(nint window, int message, nint wParam, nint lParam)
+    {
+        var phase = message switch
+        {
+            NativeMethods.WmPointerDown => TouchPhase.Down,
+            NativeMethods.WmPointerUp => TouchPhase.Up,
+            NativeMethods.WmPointerUpdate => TouchPhase.Move,
+            _ => (TouchPhase?)null,
+        };
+
+        if (phase is null)
+        {
+            return null;
+        }
+
+        // Signed, because a monitor to the left of or above the primary one has negative
+        // screen coordinates and the position is packed into two 16 bit halves.
+        var point = new NativeMethods.Point
+        {
+            X = (short)(lParam & 0xFFFF),
+            Y = (short)((lParam >> 16) & 0xFFFF),
+        };
+
+        if (!NativeMethods.ScreenToClient(window, ref point))
+        {
+            return null;
+        }
+
+        return new TouchContact((int)(wParam & 0xFFFF), point.X, point.Y, phase.Value);
     }
 
     private static TouchPhase? Phase(uint flags)

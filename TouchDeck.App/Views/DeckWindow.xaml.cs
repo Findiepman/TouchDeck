@@ -129,13 +129,28 @@ public partial class DeckWindow : Window
     }
 
     /// <summary>
-    /// Routes a touch contact to the button under it. Having asked Windows for contacts, the
-    /// panel has to deliver them itself: WPF's own touch events come from a different path
-    /// that asking may well have switched off. Both are harmless together, because pressing
-    /// a button that is already down does nothing.
+    /// Routes touch to the button under it, and marks the message handled.
     /// </summary>
+    /// <remarks>
+    /// Marking it handled is not tidiness, it is the entire point. Windows turns an
+    /// unhandled pointer message into a mouse click at that position, which drags the
+    /// pointer onto the panel, which is what swings the camera in a game that steers by the
+    /// mouse. Every pointer message has to be consumed here, the moves included, even though
+    /// there is nothing to do with a move.
+    /// </remarks>
     private nint OnWindowMessage(nint handle, int message, nint wParam, nint lParam, ref bool handled)
     {
+        if (TouchWindow.ReadPointer(handle, message, wParam, lParam) is { } pointer)
+        {
+            Report("a pointer message", pointer);
+            Route(pointer);
+            handled = true;
+            return 0;
+        }
+
+        // The older way in, kept for a machine where the pointer messages do not arrive.
+        // A press that comes down both routes is harmless: pressing a button that is
+        // already down does nothing.
         if (message != TouchWindow.TouchMessage)
         {
             return 0;
@@ -143,36 +158,55 @@ public partial class DeckWindow : Window
 
         foreach (var contact in TouchWindow.Read(handle, (int)(wParam & 0xFFFF), lParam))
         {
-            // Once, on the first contact. Which way a press arrives is the whole question
-            // when the pointer is being dragged onto the panel, and it is not otherwise
-            // possible to tell from outside.
-            if (!_touchReported)
-            {
-                _touchReported = true;
-                _logger.Information(
-                    "First touch arrived as WM_TOUCH at {X},{Y}, so Windows is sending this " +
-                    "window contacts rather than emulating a mouse.",
-                    contact.X,
-                    contact.Y);
-            }
-
-            switch (contact.Phase)
-            {
-                case TouchPhase.Down when Under(contact) is { } view:
-                    _fingers[contact.Id] = view;
-                    view.Press();
-                    break;
-
-                case TouchPhase.Up when _fingers.Remove(contact.Id, out var pressed):
-                    // The one the finger landed on, not the one it happens to be over now,
-                    // so sliding off a button still ends the press on that button.
-                    pressed.Release();
-                    break;
-            }
+            Report("WM_TOUCH", contact);
+            Route(contact);
         }
 
         handled = true;
         return 0;
+    }
+
+    /// <summary>Presses or releases the button a contact belongs to.</summary>
+    /// <param name="contact">Where the finger is, in the window's own pixels.</param>
+    private void Route(TouchContact contact)
+    {
+        switch (contact.Phase)
+        {
+            case TouchPhase.Down when Under(contact) is { } view:
+                _fingers[contact.Id] = view;
+                view.Press();
+                break;
+
+            case TouchPhase.Up when _fingers.Remove(contact.Id, out var pressed):
+                // The one the finger landed on, not the one it happens to be over now, so
+                // sliding off a button still ends the press on that button.
+                pressed.Release();
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Says once how touch is reaching the panel. Which way a press arrives is the whole
+    /// question when the pointer is being dragged onto the panel, and it cannot be worked
+    /// out from outside the process.
+    /// </summary>
+    /// <param name="route">What delivered it.</param>
+    /// <param name="contact">The contact, for its position.</param>
+    private void Report(string route, TouchContact contact)
+    {
+        if (_touchReported)
+        {
+            return;
+        }
+
+        _touchReported = true;
+
+        _logger.Information(
+            "First touch arrived as {Route} at {X},{Y}, and was consumed, so Windows makes " +
+            "no mouse click out of it.",
+            route,
+            contact.X,
+            contact.Y);
     }
 
     /// <summary>

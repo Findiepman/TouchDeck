@@ -75,6 +75,7 @@ public static class Inject
     public static extern bool InjectTouchInput(uint count, [In] POINTER_TOUCH_INFO[] info);
 
     [DllImport("user32.dll")] public static extern bool GetCursorPos(out POINT p);
+    [DllImport("user32.dll")] public static extern bool SetCursorPos(int x, int y);
 
     private const uint Touch = 2, Down = 0x00010000, Update = 0x00020000, Up = 0x00040000;
     private const uint InRange = 0x00000002, InContact = 0x00000004;
@@ -95,8 +96,17 @@ public static class Inject
     }
 
     /// <summary>Taps once and reports where the mouse pointer was before and after.</summary>
+    /// <remarks>
+    /// The pointer is parked somewhere harmless first. Without that the reading is worthless:
+    /// a game with the mouse puts the pointer back in the middle of its own window faster
+    /// than this can sample, which once made this test pass while the pointer was being
+    /// dragged onto the panel every single time.
+    /// </remarks>
     public static int[] Tap(int x, int y)
     {
+        SetCursorPos(300, 300);
+        System.Threading.Thread.Sleep(150);
+
         POINT before, after;
         GetCursorPos(out before);
 

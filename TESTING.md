@@ -111,9 +111,9 @@ ones that landed on the panel. None of them should.
 1. Note where the mouse pointer is. Tap a button on the panel. The pointer has not moved.
 2. Start a game that steers the camera with the mouse, and press a button on the panel while
    it has the mouse. The camera does not jolt.
-3. The log says both "Taking touch input directly" and "WPF's own touch stack is off" at
-   startup. Both are needed: they stop two different things from promoting a tap to the
-   mouse, and either one alone leaves the pointer moving.
+3. The log says "WPF's own touch stack is off" at startup and, on the first tap, "First
+   touch arrived as a pointer message ... and was consumed". Both are needed: they stop two
+   different things promoting a tap to the mouse, and either alone leaves the pointer moving.
 4. Set `behaviour.claimTouchInput` to false and restart. Taps move the pointer again, which
    is the old behaviour, and every button still works.
 
