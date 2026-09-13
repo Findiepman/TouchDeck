@@ -11,56 +11,31 @@ namespace TouchDeck.App.Rendering;
 /// </summary>
 public static class ButtonContent
 {
-    /// <summary>Space between the icon and the label when both are shown.</summary>
-    private const double LabelGap = 4;
-
     /// <summary>
     /// Arranges whichever of the icon and the label exist, or returns null when neither
     /// does. Top and bottom pin the label to that edge and give the icon the rest;
-    /// <c>center</c> stacks the two and centres them together as one block.
+    /// <c>center</c> stacks the two and centres them together as one block. In every case
+    /// the icon is bounded by what is left of the button, so an icon size larger than the
+    /// button means "as large as fits" rather than spilling over the edge.
     /// </summary>
     /// <param name="label">The label, or null when the button has none.</param>
     /// <param name="icon">The icon visual, or null when there is none.</param>
     /// <param name="position">Where the label sits.</param>
     public static UIElement? Compose(TextBlock? label, FrameworkElement? icon, LabelPosition position)
     {
-        if (position == LabelPosition.None || label is not { Text.Length: > 0 })
+        var visible = position != LabelPosition.None && label is { Text.Length: > 0 } ? label : null;
+
+        if (visible is null && icon is null)
         {
-            return icon;
+            return null;
         }
 
-        if (icon is null)
+        if (visible is not null)
         {
-            label.VerticalAlignment = StyleTranslator.LabelAlignment(position);
-            return label;
+            // The panel places the label itself, so its own alignment must not fight it.
+            visible.VerticalAlignment = VerticalAlignment.Top;
         }
 
-        label.VerticalAlignment = VerticalAlignment.Center;
-
-        if (position == LabelPosition.Center)
-        {
-            var centred = new StackPanel
-            {
-                VerticalAlignment = VerticalAlignment.Center,
-                IsHitTestVisible = false,
-            };
-
-            label.Margin = new Thickness(0, LabelGap, 0, 0);
-            centred.Children.Add(icon);
-            centred.Children.Add(label);
-            return centred;
-        }
-
-        var docked = new DockPanel { LastChildFill = true, IsHitTestVisible = false };
-
-        label.Margin = position == LabelPosition.Top
-            ? new Thickness(0, 0, 0, LabelGap)
-            : new Thickness(0, LabelGap, 0, 0);
-
-        DockPanel.SetDock(label, position == LabelPosition.Top ? Dock.Top : Dock.Bottom);
-
-        docked.Children.Add(label);
-        docked.Children.Add(icon);
-        return docked;
+        return new IconLabelPanel(icon, visible, position);
     }
 }

@@ -4,6 +4,7 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using Microsoft.Win32;
 using TouchDeck.App.Rendering;
 using TouchDeck.Core.Configuration;
@@ -80,8 +81,8 @@ public sealed class IconPickerBox : Border
             }
         };
 
-        _preview.Width = 34;
-        _preview.Height = 34;
+        _preview.Width = 64;
+        _preview.Height = 64;
         _preview.CornerRadius = new CornerRadius(4);
         _preview.BorderThickness = new Thickness(1);
         _preview.Margin = new Thickness(8, 0, 0, 0);
@@ -183,6 +184,11 @@ public sealed class IconPickerBox : Border
     /// rather than referencing means the config keeps working when the original moves, and
     /// it is what makes the icons folder the one place icons live. A file already inside the
     /// folder is referenced where it is.
+    ///
+    /// A flat background is taken off on the way in. Deck buttons are dark and most logos
+    /// are downloaded on white, so without this the usual result is a white card with a
+    /// small picture in the middle of it. Only the copy is touched; the file the user picked
+    /// is never written to.
     /// </summary>
     /// <param name="chosen">The file the user picked.</param>
     private string Store(string chosen)
@@ -206,12 +212,13 @@ public sealed class IconPickerBox : Border
         {
             Directory.CreateDirectory(root);
 
-            var name = Path.GetFileName(full);
+            var cut = CutOut(full);
+            var name = cut is null ? Path.GetFileName(full) : Path.GetFileNameWithoutExtension(full) + ".png";
             var target = Path.Combine(root, name);
 
             if (File.Exists(target))
             {
-                if (SameContent(full, target))
+                if (cut is null && SameContent(full, target))
                 {
                     return name;
                 }
@@ -226,13 +233,50 @@ public sealed class IconPickerBox : Border
                 }
             }
 
-            File.Copy(full, target);
+            if (cut is null)
+            {
+                File.Copy(full, target);
+            }
+            else
+            {
+                IconImage.SavePng(cut, target);
+            }
+
             return name;
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException)
         {
             // The absolute path still draws, so a failed copy is not worth an error dialog.
             return full;
+        }
+    }
+
+    /// <summary>
+    /// The image with its flat background removed and its empty margin trimmed, or null when
+    /// neither was needed and it should be copied across untouched.
+    /// </summary>
+    /// <param name="path">The file the user picked.</param>
+    private static BitmapSource? CutOut(string path)
+    {
+        if (!IconFile.IsSupported(path))
+        {
+            return null;
+        }
+
+        try
+        {
+            var image = new BitmapImage();
+            image.BeginInit();
+            image.CacheOption = BitmapCacheOption.OnLoad;
+            image.UriSource = new Uri(path, UriKind.Absolute);
+            image.EndInit();
+
+            return IconImage.Prepare(image);
+        }
+        catch (Exception e) when (e is NotSupportedException or IOException or UnauthorizedAccessException
+                                      or ArgumentException or UriFormatException)
+        {
+            return null;
         }
     }
 
@@ -348,7 +392,7 @@ public sealed class IconPickerBox : Border
         // The preview draws at a fixed size whatever the button asks for, because it is
         // showing which icon this is rather than how big it will be.
         var style = ButtonStyle.Defaults.Resolve();
-        var icon = new IconConfig { Type = Kind, Value = Value, Size = 22 };
+        var icon = new IconConfig { Type = Kind, Value = Value, Size = 48 };
 
         return _factory.Create(icon, style);
     }

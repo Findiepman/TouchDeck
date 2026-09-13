@@ -1,4 +1,7 @@
 using System.IO;
+using System.Windows;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using TouchDeck.App.Configurator;
 using TouchDeck.App.Rendering;
 using TouchDeck.Core.Configuration;
@@ -225,6 +228,130 @@ public sealed class IconTests : IDisposable
     {
         Assert.Empty(Validate(null));
         Assert.Empty(Validate(new IconConfig { Type = IconKind.None }));
+    }
+
+    [Fact]
+    public void AFlatBackgroundIsTakenOffAnUploadedLogo()
+    {
+        var source = Picture(32, 32, (x, y) =>
+            Math.Sqrt(((x - 15.5) * (x - 15.5)) + ((y - 15.5) * (y - 15.5))) <= 11
+                ? (0x5A, 0x3C, 0xE6, 0xFF)
+                : (0xFF, 0xFF, 0xFF, 0xFF));
+
+        var cut = IconImage.Prepare(source);
+
+        Assert.NotNull(cut);
+
+        // Trimmed to the circle, so the corners of what is left are the circle's own corners.
+        Assert.Equal(22, cut!.PixelWidth);
+        Assert.Equal(22, cut.PixelHeight);
+        Assert.Equal(0, AlphaAt(cut, 0, 0));
+        Assert.Equal(255, AlphaAt(cut, 11, 11));
+    }
+
+    [Fact]
+    public void TheEmptyMarginRoundAnIconIsTrimmedAway()
+    {
+        // Already cut out, but sitting in the middle of a much larger transparent canvas,
+        // which is what makes an icon draw smaller than the size it was given.
+        var source = Picture(64, 64, (x, y) =>
+            x is >= 28 and < 36 && y is >= 28 and < 36
+                ? (0x20, 0x40, 0x60, 0xFF)
+                : (0, 0, 0, 0));
+
+        var trimmed = IconImage.Prepare(source);
+
+        Assert.NotNull(trimmed);
+        Assert.Equal(8, trimmed!.PixelWidth);
+        Assert.Equal(8, trimmed.PixelHeight);
+    }
+
+    [Fact]
+    public void AnIconThatAlreadyFillsItsCanvasIsLeftAlone()
+    {
+        var source = Picture(32, 32, (x, y) => (0x20, 0x40, 0x60, 0xFF));
+
+        Assert.Null(IconImage.Prepare(source));
+    }
+
+    [Fact]
+    public void AnAreaEnclosedByTheLogoIsKept()
+    {
+        // A ring on white: the hole in the middle is the background colour but is not the
+        // background, because you cannot reach it from the edge.
+        var source = Picture(32, 32, (x, y) =>
+        {
+            var d = Math.Sqrt(((x - 15.5) * (x - 15.5)) + ((y - 15.5) * (y - 15.5)));
+            return d is >= 8 and <= 13 ? (0x5A, 0x3C, 0xE6, 0xFF) : (0xFF, 0xFF, 0xFF, 0xFF);
+        });
+
+        var cut = IconImage.Prepare(source);
+
+        Assert.NotNull(cut);
+
+        // The hole in the middle of the ring is kept: it is the background colour, but you
+        // cannot reach it from the edge, so it is part of the picture.
+        Assert.Equal(255, AlphaAt(cut!, cut.PixelWidth / 2, cut.PixelHeight / 2));
+        Assert.Equal(0, AlphaAt(cut, 0, 0));
+    }
+
+    [Fact]
+    public void AnImageThatIsAlreadyCutOutHasNoBackgroundTakenOff()
+    {
+        // Half transparent, half solid, with the solid half reaching every edge it can, so
+        // there is neither a background to remove nor a margin to trim.
+        var source = Picture(32, 32, (x, y) => x < 16 ? (0, 0, 0, 0) : (0x20, 0x40, 0x60, 0xFF));
+
+        var prepared = IconImage.Prepare(source);
+
+        Assert.NotNull(prepared);
+        Assert.Equal(16, prepared!.PixelWidth);
+        Assert.Equal(32, prepared.PixelHeight);
+    }
+
+    [Fact]
+    public void APictureWithNoFlatBackgroundIsLeftAlone()
+    {
+        var source = Picture(32, 32, (x, y) => ((byte)(x * 8), (byte)(y * 8), (byte)(x + y), (byte)255));
+
+        Assert.Null(IconImage.Prepare(source));
+    }
+
+    [Fact]
+    public void AnImageThatIsAllBackgroundIsLeftAlone()
+    {
+        var source = Picture(32, 32, (x, y) => (0xFF, 0xFF, 0xFF, 0xFF));
+
+        Assert.Null(IconImage.Prepare(source));
+    }
+
+    /// <summary>Builds a test image from a function over its pixels, in BGRA order.</summary>
+    private static BitmapSource Picture(int width, int height, Func<int, int, (int B, int G, int R, int A)> pixel)
+    {
+        var stride = width * 4;
+        var pixels = new byte[stride * height];
+
+        for (var y = 0; y < height; y++)
+        {
+            for (var x = 0; x < width; x++)
+            {
+                var (b, g, r, a) = pixel(x, y);
+                var offset = (y * stride) + (x * 4);
+                pixels[offset] = (byte)b;
+                pixels[offset + 1] = (byte)g;
+                pixels[offset + 2] = (byte)r;
+                pixels[offset + 3] = (byte)a;
+            }
+        }
+
+        return BitmapSource.Create(width, height, 96, 96, PixelFormats.Bgra32, null, pixels, stride);
+    }
+
+    private static int AlphaAt(BitmapSource image, int x, int y)
+    {
+        var pixel = new byte[4];
+        image.CopyPixels(new Int32Rect(x, y, 1, 1), pixel, 4, 0);
+        return pixel[3];
     }
 
     private static Core.Actions.ActionRegistry EditModelTestsRegistry =>

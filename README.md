@@ -206,7 +206,7 @@ the label and leaves the icon alone.
 | --- | --- |
 | `type` | `file`, `glyph`, `text` or `none`. |
 | `value` | What to draw, meaning depends on `type`. |
-| `size` | How big, in the same units as the rest of the theme. Defaults to the theme's `iconSize`. |
+| `size` | How big, at most. Defaults to the theme's `iconSize`. |
 | `colour` | See below; defaults to the theme's `iconColour`. |
 
 **`glyph`** is a Segoe Fluent Icons character, which ships with Windows and needs nothing
@@ -224,6 +224,18 @@ An image keeps its own colours unless you set `colour` on the icon, which paints
 through the image instead. Glyphs and text always take their colour from `colour` or the
 theme. That is why the theme wide `iconColour` does not flatten every app logo on the deck
 into one grey silhouette.
+
+`size` is a limit rather than an instruction: an icon is never drawn larger than the room
+left on the button once the label has its share, so a deliberately huge number such as 999
+means "as large as fits" rather than spilling over the edges.
+
+When you pick an image in the config center it is copied into the icons folder, and on the
+way in a flat background is made transparent and the empty margin around the subject is
+trimmed off. Most logos are downloaded on white, and on a dark deck that otherwise draws as
+a white card with something small in the middle of it. Only the copy is touched, never the
+file you picked, and an image that has neither a flat background nor a margin is copied
+across exactly as it is. If the guess is ever wrong, delete the copy from the icons folder
+and put your own file there under the same name.
 
 An icon that cannot be found leaves the button showing its label, and the problem is
 reported as a warning rather than stopping the deck.

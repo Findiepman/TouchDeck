@@ -222,8 +222,9 @@ public sealed class IconFactory
         {
             Fill = StyleTranslator.Brush(colour),
             OpacityMask = mask,
-            Width = size,
-            Height = size,
+            Stretch = Stretch.Uniform,
+            MaxWidth = size,
+            MaxHeight = size,
             HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center,
         };
@@ -240,20 +241,18 @@ public sealed class IconFactory
             return null;
         }
 
-        return new TextBlock
+        return Fitted(new TextBlock
         {
             Text = glyph,
             FontFamily = StyleTranslator.Font(GlyphFontFamily),
             FontSize = size,
             Foreground = StyleTranslator.Brush(icon.Colour ?? style.IconColour),
             TextAlignment = TextAlignment.Center,
-            HorizontalAlignment = HorizontalAlignment.Center,
-            VerticalAlignment = VerticalAlignment.Center,
-        };
+        });
     }
 
     private static FrameworkElement CreateText(IconConfig icon, ResolvedButtonStyle style, double size) =>
-        new TextBlock
+        Fitted(new TextBlock
         {
             Text = icon.Value!,
             FontFamily = StyleTranslator.Font(style.FontFamily),
@@ -261,10 +260,21 @@ public sealed class IconFactory
             FontWeight = StyleTranslator.Weight(style.FontWeight),
             Foreground = StyleTranslator.Brush(icon.Colour ?? style.IconColour),
             TextAlignment = TextAlignment.Center,
-            TextTrimming = TextTrimming.CharacterEllipsis,
-            HorizontalAlignment = HorizontalAlignment.Center,
-            VerticalAlignment = VerticalAlignment.Center,
-        };
+        });
+
+    /// <summary>
+    /// Keeps something drawn at a fixed size inside the space it is given. It only ever
+    /// shrinks, so an icon that already fits is left at exactly the size that was asked for.
+    /// </summary>
+    /// <param name="content">The element to bound.</param>
+    private static FrameworkElement Fitted(FrameworkElement content) => new Viewbox
+    {
+        Child = content,
+        Stretch = Stretch.Uniform,
+        StretchDirection = StretchDirection.DownOnly,
+        HorizontalAlignment = HorizontalAlignment.Center,
+        VerticalAlignment = VerticalAlignment.Center,
+    };
 
     /// <summary>
     /// Accepts the glyph itself, or a code point written as <c>E713</c>, <c>0xE713</c>,
