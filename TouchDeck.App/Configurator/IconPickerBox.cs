@@ -61,6 +61,7 @@ public sealed class IconPickerBox : Border
     private readonly TextBox _text = new();
     private readonly Border _preview = new();
     private readonly Button _pick = new();
+    private readonly Button _cut = new();
     private readonly Popup _popup = new();
 
     private IconFactory? _factory;
@@ -91,6 +92,11 @@ public sealed class IconPickerBox : Border
         _pick.Margin = new Thickness(8, 0, 0, 0);
         _pick.Click += (_, _) => Choose();
 
+        _cut.Content = "No background";
+        _cut.Margin = new Thickness(8, 0, 0, 0);
+        _cut.ToolTip = "Make the flat background transparent and trim the empty margin.";
+        _cut.Click += (_, _) => CutOutCurrent();
+
         _popup.PlacementTarget = _preview;
         _popup.Placement = PlacementMode.Bottom;
         _popup.StaysOpen = false;
@@ -102,12 +108,15 @@ public sealed class IconPickerBox : Border
         row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
         row.Children.Add(_text);
         Grid.SetColumn(_preview, 1);
         row.Children.Add(_preview);
         Grid.SetColumn(_pick, 2);
         row.Children.Add(_pick);
+        Grid.SetColumn(_cut, 3);
+        row.Children.Add(_cut);
         row.Children.Add(_popup);
 
         Child = row;
@@ -182,13 +191,13 @@ public sealed class IconPickerBox : Border
     /// <summary>
     /// Brings a chosen file into the icons folder and returns the value to store. Copying
     /// rather than referencing means the config keeps working when the original moves, and
-    /// it is what makes the icons folder the one place icons live. A file already inside the
-    /// folder is referenced where it is.
+    /// it is what makes the icons folder the one place icons live.
     ///
-    /// A flat background is taken off on the way in. Deck buttons are dark and most logos
-    /// are downloaded on white, so without this the usual result is a white card with a
-    /// small picture in the middle of it. Only the copy is touched; the file the user picked
-    /// is never written to.
+    /// A flat background is taken off on the way in, and the empty margin round what is left
+    /// is trimmed. Deck buttons are dark and most logos are downloaded on white, so without
+    /// this the usual result is a white card with a small picture in the middle of it. The
+    /// prepared image is written as a new file; nothing already in the folder, and certainly
+    /// not the file that was picked, is ever written over.
     /// </summary>
     /// <param name="chosen">The file the user picked.</param>
     private string Store(string chosen)
@@ -202,60 +211,123 @@ public sealed class IconPickerBox : Border
 
         var root = Path.GetFullPath(IconsDirectory);
         var prefix = root.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
-
-        if (full.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-        {
-            return full[prefix.Length..];
-        }
+        var inside = full.StartsWith(prefix, StringComparison.OrdinalIgnoreCase);
 
         try
         {
             Directory.CreateDirectory(root);
 
-            var cut = CutOut(full);
-            var name = cut is null ? Path.GetFileName(full) : Path.GetFileNameWithoutExtension(full) + ".png";
-            var target = Path.Combine(root, name);
-
-            if (File.Exists(target))
+            // Preparing happens whether or not the file had to be copied. The file dialog
+            // opens in the icons folder, so picking something already there is the most
+            // likely thing to do, and it used to be the one path that skipped this.
+            if (CutOut(full) is { } cut)
             {
-                if (cut is null && SameContent(full, target))
-                {
-                    return name;
-                }
-
-                var stem = Path.GetFileNameWithoutExtension(name);
-                var extension = Path.GetExtension(name);
-
-                for (var n = 2; File.Exists(target); n++)
-                {
-                    name = $"{stem} {n}{extension}";
-                    target = Path.Combine(root, name);
-                }
+                var prepared = Free(root, Path.GetFileNameWithoutExtension(full) + ".png", full);
+                IconImage.SavePng(cut, Path.Combine(root, prepared));
+                return prepared;
             }
 
-            if (cut is null)
+            if (inside)
             {
-                File.Copy(full, target);
-            }
-            else
-            {
-                IconImage.SavePng(cut, target);
+                return full[prefix.Length..];
             }
 
+            var name = Path.GetFileName(full);
+
+            if (File.Exists(Path.Combine(root, name)) && SameContent(full, Path.Combine(root, name)))
+            {
+                return name;
+            }
+
+            name = Free(root, name, full);
+            File.Copy(full, Path.Combine(root, name));
             return name;
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException)
         {
             // The absolute path still draws, so a failed copy is not worth an error dialog.
-            return full;
+            return inside ? full[prefix.Length..] : full;
         }
     }
 
     /// <summary>
-    /// The image with its flat background removed and its empty margin trimmed, or null when
-    /// neither was needed and it should be copied across untouched.
+    /// Takes the background off whatever the icon currently points at, and points it at the
+    /// result. This exists because preparing on the way in only helps an icon that arrived
+    /// that way: one typed in by hand, or set before this could do it, would otherwise have
+    /// no way to get the same treatment short of picking the file again.
     /// </summary>
-    /// <param name="path">The file the user picked.</param>
+    private void CutOutCurrent()
+    {
+        if (Kind != IconKind.File ||
+            string.IsNullOrWhiteSpace(Value) ||
+            string.IsNullOrWhiteSpace(IconsDirectory) ||
+            IconFile.Resolve(IconsDirectory, Value) is not { } path)
+        {
+            return;
+        }
+
+        if (!File.Exists(path))
+        {
+            Explain($"There is no file at {path}.");
+            return;
+        }
+
+        if (CutOut(path) is not { } cut)
+        {
+            Explain(
+                "This image has no flat background to remove and no empty margin to trim. " +
+                "A background is only removed when the edges of the image are all one colour.");
+            return;
+        }
+
+        try
+        {
+            var root = Path.GetFullPath(IconsDirectory);
+            Directory.CreateDirectory(root);
+
+            var name = Free(root, Path.GetFileNameWithoutExtension(path) + ".png", path);
+            IconImage.SavePng(cut, Path.Combine(root, name));
+            Value = name;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException)
+        {
+            Explain($"The prepared image could not be written: {e.Message}");
+        }
+    }
+
+    private static void Explain(string message) =>
+        MessageBox.Show(message, "Remove background", MessageBoxButton.OK, MessageBoxImage.Information);
+
+    /// <summary>
+    /// A file name in <paramref name="root"/> that is not taken, and is never the file being
+    /// read from, so preparing an image cannot overwrite the image it came from.
+    /// </summary>
+    /// <param name="root">The icons folder.</param>
+    /// <param name="name">The name to use if it is free.</param>
+    /// <param name="source">The file being read, which must not be the answer.</param>
+    private static string Free(string root, string name, string source)
+    {
+        var stem = Path.GetFileNameWithoutExtension(name);
+        var extension = Path.GetExtension(name);
+        var candidate = name;
+
+        bool Taken(string full) =>
+            File.Exists(full) ||
+            string.Equals(Path.GetFullPath(full), source, StringComparison.OrdinalIgnoreCase);
+
+        for (var n = 2; Taken(Path.Combine(root, candidate)); n++)
+        {
+            candidate = $"{stem} {n}{extension}";
+        }
+
+        return candidate;
+    }
+
+    /// <summary>
+    /// The image with its flat background removed and its empty margin trimmed, or null when
+    /// neither was needed and it should be left exactly as it is.
+    /// </summary>
+    /// <param name="path">An absolute path to an image file.</param>
     private static BitmapSource? CutOut(string path)
     {
         if (!IconFile.IsSupported(path))
@@ -368,6 +440,9 @@ public sealed class IconPickerBox : Border
 
         _pick.IsEnabled = Kind is IconKind.File or IconKind.Glyph;
         _pick.Content = Kind == IconKind.File ? "Browse" : "Choose";
+
+        _cut.Visibility = Kind == IconKind.File ? Visibility.Visible : Visibility.Collapsed;
+        _cut.IsEnabled = !string.IsNullOrWhiteSpace(Value) && !IconFile.IsInterpolated(Value);
 
         _preview.BorderBrush = Resource("Edge", Color.FromRgb(0x3A, 0x37, 0x35));
         _preview.Background = Resource("Field", Color.FromRgb(0x1A, 0x19, 0x17));

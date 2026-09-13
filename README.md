@@ -229,13 +229,15 @@ into one grey silhouette.
 left on the button once the label has its share, so a deliberately huge number such as 999
 means "as large as fits" rather than spilling over the edges.
 
-When you pick an image in the config center it is copied into the icons folder, and on the
-way in a flat background is made transparent and the empty margin around the subject is
-trimmed off. Most logos are downloaded on white, and on a dark deck that otherwise draws as
-a white card with something small in the middle of it. Only the copy is touched, never the
-file you picked, and an image that has neither a flat background nor a margin is copied
-across exactly as it is. If the guess is ever wrong, delete the copy from the icons folder
-and put your own file there under the same name.
+When you pick an image in the config center, a flat background is made transparent and the
+empty margin around the subject is trimmed off. Most logos are downloaded on white, and on a
+dark deck that otherwise draws as a white card with something small in the middle of it. The
+result is written as a new png beside the original; nothing you already had is written over,
+and an image with neither a flat background nor a margin is used exactly as it is.
+
+**No background** next to the file box does the same thing to the icon already set, which is
+what to use for an icon typed in by hand or set before this existed. If the guess is wrong,
+point the icon back at the original file and delete the prepared one.
 
 An icon that cannot be found leaves the button showing its label, and the problem is
 reported as a warning rather than stopping the deck.

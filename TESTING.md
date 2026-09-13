@@ -65,10 +65,15 @@ Needs eyes rather than a test, because the point of it is how it looks.
    over from the label and stops there; nothing crosses the button border and no label is
    pushed off the bottom. Try it with each `labelPosition`, and with a glyph as well as an
    image.
-8. In the config center, choose an image that has a white background. The copy that lands in
-   the icons folder is transparent and trimmed to the picture, and the file you picked is
-   untouched. A photograph, or an image already cut out and filling its canvas, is copied
-   across byte for byte.
+8. In the config center, choose an image that has a white background. What lands in the icons
+   folder is a png, transparent and trimmed to the picture, and the file you picked is
+   untouched. A photograph, or an image already cut out and filling its canvas, is used
+   exactly as it is.
+9. Set an icon to a white backgrounded image by typing its name, then press **No background**.
+   A prepared png appears beside the original, the icon repoints at it, and the preview
+   swatch updates. Pressing it again says there is nothing left to remove. It works the same
+   on a file that was already sitting in the icons folder, which is the case that used to be
+   skipped.
 
 ## Surviving a broken config
 
