@@ -364,10 +364,40 @@ heard before any of them repeats and the same one never comes up twice in a row.
 kept in `%APPDATA%\QuoteDeck\state` and survives a restart.
 
 `devices` are substrings of the output device names, matched case insensitively. Listing two
-plays the clip to both at once, which is how it reaches a virtual cable and your own
-headphones together. Leave it out for the default device. `policy` says what a second press
-does while a clip is still playing: `cutoff` stops the first one, `overlap` lets them stack,
+plays the clip to both at once. Leave it out and the clip goes to your default playback
+device, which means you hear it and nobody else does. `policy` says what a second press does
+while a clip is still playing: `cutoff` stops the first one, `overlap` lets them stack,
 `ignore` drops the press.
+
+### Getting it into your microphone
+
+This is what `devices` is really for, and it needs one thing TouchDeck cannot provide.
+
+A microphone is an input. Nothing can play a sound "into" one; what makes it work is a
+**virtual audio device**, which is a playback device on one side and a microphone on the
+other. Anything played into it comes out of the microphone that other applications record
+from. VB-Audio's Virtual Cable and VoiceMeeter are the usual free ones; SteelSeries Sonar,
+Voicemod and similar suites bring their own.
+
+Once you have one:
+
+1. Enable it. Windows lists these under Sound settings, and they are easy to leave switched
+   off; a disabled one is named in the log when a button tries to use it.
+2. Set your voice chat's microphone to the virtual device's **recording** side.
+3. Name the virtual device's **playback** side in `devices`, along with whatever you listen
+   through, so you hear the clip too:
+
+```json
+{ "type": "soundboard", "category": "insults", "id": "rage",
+  "devices": ["Virtual Cable", "Headphones"] }
+```
+
+Listing both is the point: one copy goes to the people you are talking to, one copy goes to
+you. Name only the virtual device and you will not hear your own soundboard.
+
+If you also want your voice and the clips mixed into one microphone, that is the virtual
+device's job rather than TouchDeck's, and it is what VoiceMeeter and the vendor suites are
+for.
 
 Rebuilding the clips is picked up without restarting the deck. If there is no manifest at
 all, the button reports that rather than going quietly silent.

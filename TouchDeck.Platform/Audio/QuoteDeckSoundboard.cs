@@ -238,8 +238,24 @@ public sealed class QuoteDeckSoundboard : ISoundboardPlayer, IDisposable
                     && entry.Name.Contains(name, StringComparison.OrdinalIgnoreCase));
             if (match is null)
             {
-                _logger.Warning(
-                    "No output device matching {Name}; falling back to the default device", name);
+                // Saying which, when the device exists but is switched off, saves a long hunt.
+                // A virtual cable or a virtual microphone is exactly the sort of thing that
+                // sits there disabled, and "no device matching" reads as "you typed it wrong".
+                if (_devices.Disabled(name) is { } off)
+                {
+                    _logger.Warning(
+                        "\"{Device}\" is turned off in Windows, so {Name} cannot be played to. " +
+                        "Enable it under Sound settings, or in the software that provides it. " +
+                        "Falling back to the default device.",
+                        off,
+                        name);
+                }
+                else
+                {
+                    _logger.Warning(
+                        "No output device matching {Name}; falling back to the default device", name);
+                }
+
                 if (!resolved.Contains(null))
                 {
                     resolved.Add(null);
@@ -358,6 +374,7 @@ public sealed class QuoteDeckSoundboard : ISoundboardPlayer, IDisposable
         private readonly object _gate = new();
         private readonly List<MMDevice> _owned = [];
         private List<DeviceEntry>? _entries;
+        private List<string>? _disabled;
         private bool _registered;
 
         public DeviceDirectory(MMDeviceEnumerator enumerator, ILogger logger)
@@ -388,6 +405,53 @@ public sealed class QuoteDeckSoundboard : ISoundboardPlayer, IDisposable
             }
         }
 
+        /// <summary>
+        /// The full name of a render device that matches but has been switched off, or null
+        /// when no such device exists.
+        /// </summary>
+        /// <remarks>
+        /// Only the deliberately disabled ones. The unplugged and the not present ones are
+        /// every monitor and headset the machine has ever had, which on this one is dozens,
+        /// and each name read costs about 120ms; asking about all of them turned a failed
+        /// lookup into a seconds long pause before the clip fell back to the default device.
+        /// The answer is kept for the same reason and thrown away when the endpoints change.
+        /// </remarks>
+        /// <param name="name">The substring that matched no active device.</param>
+        public string? Disabled(string name)
+        {
+            List<string> off;
+
+            lock (_gate)
+            {
+                off = _disabled ??= Off();
+            }
+
+            return off.FirstOrDefault(entry => entry.Contains(name, StringComparison.OrdinalIgnoreCase));
+        }
+
+        private List<string> Off()
+        {
+            var names = new List<string>();
+
+            try
+            {
+                foreach (var device in _enumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Disabled))
+                {
+                    using (device)
+                    {
+                        names.Add(device.FriendlyName);
+                    }
+                }
+            }
+            catch (COMException ex)
+            {
+                // Only ever used to make a message clearer, so it is never worth an error.
+                _logger.Debug(ex, "Could not list the switched off output devices");
+            }
+
+            return names;
+        }
+
         private List<DeviceEntry> Build()
         {
             var entries = new List<DeviceEntry>();
@@ -415,6 +479,7 @@ public sealed class QuoteDeckSoundboard : ISoundboardPlayer, IDisposable
                 // The old MMDevices stay alive: a clip may still be playing through one, and
                 // they are released together when the soundboard shuts down.
                 _entries = null;
+                _disabled = null;
             }
 
             if (!_registered)
@@ -470,6 +535,7 @@ public sealed class QuoteDeckSoundboard : ISoundboardPlayer, IDisposable
 
                 _owned.Clear();
                 _entries = null;
+                _disabled = null;
             }
         }
     }
