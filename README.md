@@ -344,8 +344,33 @@ as a scan code, which is why it works inside games.
 | --- | --- |
 | `audio` | `target` (`default`, `device`, `process`), `name`, `operation` (`mute`, `unmute`, `toggleMute`, `set`, `adjust`), `value` |
 | `media` | `command` (`playPause`, `next`, `previous`, `stop`) |
+| `soundboard` | `category`, `id`, `devices`, `volume`, `policy` (`cutoff`, `overlap`, `ignore`) |
 
 `value` is 0 to 1 when setting, or the amount to move by when adjusting.
+
+`soundboard` plays a clip that QuoteDeck has already rendered, read from
+`%APPDATA%\QuoteDeck` unless `QUOTEDECK_HOME` says otherwise.
+Nothing is synthesised when you press the button: it reads a manifest it already has in
+memory, takes the wav bytes from a cache and hands them to Windows.
+
+```json
+{ "type": "soundboard", "category": "insults" }
+{ "type": "soundboard", "category": "insults", "id": "rage",
+  "devices": ["CABLE Input", "Koptelefoon"], "volume": 0.9, "policy": "cutoff" }
+```
+
+Leave `id` out and the button draws from a shuffle bag, so every line in the category is
+heard before any of them repeats and the same one never comes up twice in a row. The bag is
+kept in `%APPDATA%\QuoteDeck\state` and survives a restart.
+
+`devices` are substrings of the output device names, matched case insensitively. Listing two
+plays the clip to both at once, which is how it reaches a virtual cable and your own
+headphones together. Leave it out for the default device. `policy` says what a second press
+does while a clip is still playing: `cutoff` stops the first one, `overlap` lets them stack,
+`ignore` drops the press.
+
+Rebuilding the clips is picked up without restarting the deck. If there is no manifest at
+all, the button reports that rather than going quietly silent.
 
 ### OBS
 

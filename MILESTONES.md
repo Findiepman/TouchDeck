@@ -26,6 +26,10 @@ All 26 action types from section 6.2:
 - Composition: `sequence`, `delay`, `conditional`, `random`
 - Escape hatches: `http`, `ahk`
 
+A twenty seventh arrived later and is not in the brief at all: `soundboard`, which plays
+clips QuoteDeck has already rendered, drawn from a shuffle bag and played to as many output
+devices at once as you name.
+
 Three things the brief puts later came with it, because the actions would otherwise be
 hollow: a deck controller that really changes page and profile, a variable store that
 remembers across restarts, and the expression language.

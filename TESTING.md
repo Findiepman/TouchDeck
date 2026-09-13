@@ -94,6 +94,26 @@ The thing to watch for is a press carrying through to the page you arrive on.
 4. Hold the nav button down for several seconds. The page still changes when you let go.
 5. Edit the config while holding a button down. The redraw waits for the release.
 
+## The soundboard
+
+Needs QuoteDeck to have built its clips first, and ears.
+
+1. Point a button at a category: `{ "type": "soundboard", "category": "insults" }`. Press it
+   several times. Every line in the category is heard before any of them repeats, and the
+   same one never comes twice in a row.
+2. Restart the deck and keep pressing. It carries on where the bag left off rather than
+   starting the category again.
+3. Name two devices in `devices`, one of them a virtual cable. The clip arrives on both at
+   once, and whoever is listening through the cable hears it.
+4. Press the button again while a clip is playing. With `cutoff` the first one stops, with
+   `overlap` they stack, with `ignore` the press does nothing.
+5. Rename a category in the manifest and rebuild. The deck picks the new manifest up without
+   a restart.
+6. Point a button at a category that does not exist. It flashes its error state and the log
+   says which category was asked for, rather than going quietly silent.
+7. Move `%APPDATA%\QuoteDeck` out of the way and press a soundboard button. It says there is
+   no manifest and names the command that builds one.
+
 ## Surviving a broken config
 
 1. Delete a required field, or put a syntax error in a profile file, and save.

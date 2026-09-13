@@ -48,6 +48,7 @@ public partial class App : Application
     private string? _configDirectory;
     private ObsControl? _obs;
     private CoreAudioMixer? _audio;
+    private QuoteDeckSoundboard? _soundboard;
     private HttpSender? _http;
     private DeckViewModel? _viewModel;
     private DeckWindow? _window;
@@ -123,6 +124,7 @@ public partial class App : Application
         _injector = new SendInputInjector(_logger);
         _obs = new ObsControl(_logger);
         _audio = new CoreAudioMixer(_logger);
+        _soundboard = new QuoteDeckSoundboard(_logger);
         _http = new HttpSender(_logger);
 
         var windows = new WindowManager(_logger);
@@ -135,6 +137,7 @@ public partial class App : Application
             .Add<IWindowManager>(windows)
             .Add<IClipboard>(new Win32Clipboard(_logger))
             .Add<IAudioMixer>(_audio)
+            .Add<ISoundboardPlayer>(_soundboard)
             .Add<IShellRunner>(new ShellRunner(_logger))
             .Add<IHttpSender>(_http)
             .Add<IScriptRunner>(new AutoHotkeyRunner(_logger))
@@ -176,6 +179,7 @@ public partial class App : Application
 
         _obs?.Dispose();
         _audio?.Dispose();
+        _soundboard?.Dispose();
         _http?.Dispose();
 
         if (_configService is not null)
