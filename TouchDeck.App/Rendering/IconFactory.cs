@@ -8,9 +8,6 @@ using System.Windows.Media.Imaging;
 using Serilog;
 using TouchDeck.Core.Configuration;
 
-// Aliased rather than imported: System.Windows.Shapes.Path collides with System.IO.Path.
-using Rectangle = System.Windows.Shapes.Rectangle;
-
 namespace TouchDeck.App.Rendering;
 
 /// <summary>
@@ -107,6 +104,7 @@ public sealed class IconFactory
             AlignmentY = AlignmentY.Center,
         };
 
+        RenderOptions.SetBitmapScalingMode(brush, BitmapScalingMode.HighQuality);
         brush.Freeze();
         return brush;
     }
@@ -193,15 +191,11 @@ public sealed class IconFactory
             return null;
         }
 
-        // A file icon keeps its own colours unless the button asks for a tint. The theme
-        // wide iconColour exists for glyphs; applying it here would flatten every app logo
-        // on the deck into one grey silhouette.
-        if (icon.Colour is { Length: > 0 } tint)
-        {
-            return Tinted(source, tint, size);
-        }
-
-        return new Image
+        // A file icon is drawn in its own colours. Tinting one used to be possible through
+        // icon.colour and it is not any more: an image painted through its own alpha came
+        // out wrong far more often than it came out as a silhouette, and a glyph is the
+        // right way to ask for a symbol in a colour of your choosing.
+        var image = new Image
         {
             Source = source,
             Stretch = Stretch.Uniform,
@@ -210,24 +204,13 @@ public sealed class IconFactory
             HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center,
         };
-    }
 
-    /// <summary>Paints one colour through the image's alpha, which is what tinting means here.</summary>
-    private static FrameworkElement Tinted(BitmapSource source, string colour, double size)
-    {
-        var mask = new ImageBrush(source) { Stretch = Stretch.Uniform };
-        mask.Freeze();
+        // A logo is usually hundreds of pixels across and a deck button is not. The default
+        // sampler takes four pixels per point, which on that kind of reduction throws most
+        // of the picture away and leaves the edges crawling.
+        RenderOptions.SetBitmapScalingMode(image, BitmapScalingMode.HighQuality);
 
-        return new Rectangle
-        {
-            Fill = StyleTranslator.Brush(colour),
-            OpacityMask = mask,
-            Stretch = Stretch.Uniform,
-            MaxWidth = size,
-            MaxHeight = size,
-            HorizontalAlignment = HorizontalAlignment.Center,
-            VerticalAlignment = VerticalAlignment.Center,
-        };
+        return image;
     }
 
     private FrameworkElement? CreateGlyph(IconConfig icon, ResolvedButtonStyle style, double size)

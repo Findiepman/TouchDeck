@@ -62,7 +62,8 @@ shape of your actual screen, so it is what the touchscreen will look like.
   that action needs.
 - Drag a button to move it. Drop it on another and they trade places.
 - Right click a button to copy or delete it. `Delete`, `Ctrl+D`, `Ctrl+S` and `Escape` work.
-- Colours come from a palette. An empty colour means the theme decides.
+- Colours are picked from a square and a hue strip, typed as red, green and blue, typed as
+  hex, or taken from a palette. An empty colour means the theme decides.
 
 Saving writes only the files that changed and keeps the previous version of each beside it
 as `.bak`. A running deck picks the change up within about a quarter of a second.
@@ -207,11 +208,13 @@ the label and leaves the icon alone.
 | `type` | `file`, `glyph`, `text` or `none`. |
 | `value` | What to draw, meaning depends on `type`. |
 | `size` | How big, at most. Defaults to the theme's `iconSize`. |
-| `colour` | See below; defaults to the theme's `iconColour`. |
+| `colour` | Glyphs and text only; defaults to the theme's `iconColour`. |
 
 **`glyph`** is a Segoe Fluent Icons character, which ships with Windows and needs nothing
 installed. Give the character itself or its code point, written any of the usual ways:
-`E713`, `0xE713`, `U+E713`. The config center has a grid of the common ones.
+`E713`, `0xE713`, `U+E713`. The config center shows the handy ones first and then every
+glyph the font has, around two thousand of them, read out of the font itself so nothing in
+the grid is a symbol your Windows does not have.
 
 **`file`** is an image. A relative path is read from the icons folder next to `config.json`,
 so `"value": "discord.png"` means `icons\discord.png`; an absolute path also works, and
@@ -220,10 +223,11 @@ not yet**, and says so rather than drawing nothing silently.
 
 **`text`** is literal characters drawn at icon size, for when no glyph fits.
 
-An image keeps its own colours unless you set `colour` on the icon, which paints that colour
-through the image instead. Glyphs and text always take their colour from `colour` or the
-theme. That is why the theme wide `iconColour` does not flatten every app logo on the deck
-into one grey silhouette.
+**An image is drawn in its own colours and `colour` does nothing to it.** Glyphs and text
+take their colour from `colour` or from the theme's `iconColour`, which is why that theme
+wide setting does not flatten every app logo on the deck into one grey silhouette. If you
+want a symbol in a colour of your choosing, use a glyph; a `colour` left on a file icon is
+reported as a warning and ignored.
 
 `size` is a limit rather than an instruction: an icon is never drawn larger than the room
 left on the button once the label has its share, so a deliberately huge number such as 999
@@ -237,7 +241,13 @@ and an image with neither a flat background nor a margin is used exactly as it i
 
 **No background** next to the file box does the same thing to the icon already set, which is
 what to use for an icon typed in by hand or set before this existed. If the guess is wrong,
-point the icon back at the original file and delete the prepared one.
+point the icon back at the original file and delete the prepared one. The ✕ button beside it
+takes the icon off the button altogether.
+
+An image is also brought down to at most 512 pixels on its longest side on the way in. A
+downloaded logo is often several times that and a deck button is a hundred or so pixels
+across, and reducing it once, properly, looks considerably better than reducing it on every
+frame.
 
 An icon that cannot be found leaves the button showing its label, and the problem is
 reported as a warning rather than stopping the deck.

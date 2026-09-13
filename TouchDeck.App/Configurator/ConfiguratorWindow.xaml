@@ -238,13 +238,16 @@
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
                             <TextBlock Text="Size" Style="{StaticResource Text.FieldName}" />
-                            <TextBlock Grid.Column="2" Text="Colour" Style="{StaticResource Text.FieldName}" />
+                            <TextBlock Grid.Column="2" Text="Colour" Style="{StaticResource Text.FieldName}"
+                                       Visibility="{Binding HasColour, Converter={StaticResource Show}}" />
                             <TextBox Grid.Row="1" Style="{StaticResource TextBox.Number}"
                                      Text="{Binding Size, UpdateSourceTrigger=LostFocus, TargetNullValue=''}" />
-                            <cfg:ColourPickerBox Grid.Row="1" Grid.Column="2" Colour="{Binding Colour, Mode=TwoWay}" />
+                            <cfg:ColourPickerBox Grid.Row="1" Grid.Column="2"
+                                                 Colour="{Binding Colour, Mode=TwoWay}"
+                                                 Visibility="{Binding HasColour, Converter={StaticResource Show}}" />
                         </Grid>
 
-                        <TextBlock Text="An image keeps its own colours unless you set one here, which tints it instead."
+                        <TextBlock Text="An image is drawn in its own colours. Use a glyph if you want to choose one."
                                    Style="{StaticResource Text.Hint}"
                                    Visibility="{Binding IsFile, Converter={StaticResource Show}}" />
                     </StackPanel>

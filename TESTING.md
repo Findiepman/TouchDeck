@@ -53,7 +53,9 @@ Needs eyes rather than a test, because the point of it is how it looks.
    the Segoe Fluent Icons font is missing and Segoe MDL2 Assets did not have that code point.
 2. Drop a png into the icons folder and point a button at it with
    `"icon": { "type": "file", "value": "yours.png" }`. It keeps its own colours.
-3. Add `"colour": "#46B96B"` to that icon. It turns into a green silhouette of itself.
+3. Add `"colour": "#46B96B"` to that icon. Nothing about the image changes, and the config
+   center's warning list says the colour does nothing there. The config center has no colour
+   field on a file icon at all; switching an icon from glyph to file drops the colour it had.
 4. Set `labelPosition` on a button to each of `top`, `bottom`, `center` and `none`. Top and
    bottom pin the label to that edge, center stacks icon and label in the middle, none drops
    the label.
@@ -67,13 +69,18 @@ Needs eyes rather than a test, because the point of it is how it looks.
    image.
 8. In the config center, choose an image that has a white background. What lands in the icons
    folder is a png, transparent and trimmed to the picture, and the file you picked is
-   untouched. A photograph, or an image already cut out and filling its canvas, is used
-   exactly as it is.
+   untouched. Look closely at the edges on a dark button: there should be no pale outline
+   where the background used to be. A photograph, or an image already cut out and filling its
+   canvas, is used as it is unless it is over 512 pixels, which is reduced.
 9. Set an icon to a white backgrounded image by typing its name, then press **No background**.
    A prepared png appears beside the original, the icon repoints at it, and the preview
    swatch updates. Pressing it again says there is nothing left to remove. It works the same
    on a file that was already sitting in the icons folder, which is the case that used to be
    skipped.
+10. Press the ✕ beside it. The icon comes off the button and the preview empties.
+11. With the icon kind set to glyph, press **Choose**. The grid opens at once, showing the
+    handy glyphs first and then every glyph the font has, and keeps filling in as you scroll.
+    One click on any of them sets it; no holding, no dragging.
 
 ## Surviving a broken config
 
@@ -103,8 +110,11 @@ The window is one rail, one deck and one inspector. There is no tree to navigate
 5. Drag a button to move it. Drop it on another and they trade places.
 6. Right click a button for copy and delete. Delete removes the selected one, Ctrl+D copies
    it, Ctrl+S saves, Escape goes back to the add surface.
-7. Colours are picked from a palette. An empty colour means the theme decides, and there is
-   a button in the palette that puts it back to that.
+7. Press any colour swatch. One click opens the picker; one click on a colour in it sets
+   that colour and closes it. Drag in the square and along the hue strip and the swatch
+   follows; type into R, G and B, or into the hex box, and it follows that too. An empty
+   colour means the theme decides, and there is a button in the picker that puts it back to
+   that. Pressing the swatch again closes the picker rather than flickering it shut and open.
 8. Press Save. Every file that changed is written, the previous version of each is kept
    next to it as `.bak`, and a running deck reloads within about a quarter of a second.
 

@@ -258,7 +258,23 @@ public sealed class ConfigValidator
             return;
         }
 
-        if (icon.Type != IconKind.File || IconFile.IsInterpolated(icon.Value))
+        if (icon.Type != IconKind.File)
+        {
+            return;
+        }
+
+        // Images used to be tintable and are not any more. Saying so beats leaving someone
+        // to work out why the colour they set does nothing.
+        if (!string.IsNullOrWhiteSpace(icon.Colour))
+        {
+            messages.Add(ValidationMessage.Warning(
+                file,
+                $"{path}.colour",
+                "An image is drawn in its own colours, so \"colour\" does nothing here. " +
+                "Use an icon of type \"glyph\" to choose the colour."));
+        }
+
+        if (IconFile.IsInterpolated(icon.Value))
         {
             return;
         }

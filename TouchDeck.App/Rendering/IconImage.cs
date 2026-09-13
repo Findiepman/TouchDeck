@@ -34,9 +34,18 @@ public static class IconImage
     private const double AlreadyCutOut = 0.02;
 
     /// <summary>
+    /// Longest side an icon is stored at. A deck button is a hundred or so pixels across and
+    /// a downloaded logo is often two thousand, which is both a slow thing to draw and a
+    /// worse looking one: the reduction happens here, once, at full quality, instead of on
+    /// every frame at whatever quality the compositor has time for.
+    /// </summary>
+    private const int MaximumSide = 512;
+
+    /// <summary>
     /// Returns <paramref name="source"/> ready to be used as an icon: flat background taken
-    /// off, and the empty space around the subject trimmed away. Returns null when neither
-    /// was needed, which is the signal to copy the original across untouched.
+    /// off, the empty space around the subject trimmed away, and the result brought down to
+    /// a size a button can actually use. Returns null when none of that was needed, which is
+    /// the signal to copy the original across untouched.
     /// </summary>
     /// <param name="source">The image as loaded.</param>
     public static BitmapSource? Prepare(BitmapSource source)
@@ -80,17 +89,14 @@ public static class IconImage
 
         var trimmed = bounds.Value != new Int32Rect(0, 0, width, height);
 
-        if (!cut && !trimmed)
-        {
-            return null;
-        }
+        Premultiply(pixels, background, cut);
 
-        var result = BitmapSource.Create(
+        BitmapSource result = BitmapSource.Create(
             width,
             height,
             source.DpiX,
             source.DpiY,
-            PixelFormats.Bgra32,
+            PixelFormats.Pbgra32,
             null,
             pixels,
             stride);
@@ -100,9 +106,96 @@ public static class IconImage
             result = new CroppedBitmap(result, bounds.Value);
         }
 
+        var shrunk = Shrink(result);
+
+        if (shrunk is not null)
+        {
+            result = shrunk;
+        }
+        else if (!cut && !trimmed)
+        {
+            return null;
+        }
+
         result.Freeze();
         return result;
     }
+
+    /// <summary>
+    /// Brings the image down to <see cref="MaximumSide"/>, or returns null when it is already
+    /// small enough.
+    /// </summary>
+    /// <param name="image">The image to reduce.</param>
+    private static BitmapSource? Shrink(BitmapSource image)
+    {
+        var side = Math.Max(image.PixelWidth, image.PixelHeight);
+
+        if (side <= MaximumSide)
+        {
+            return null;
+        }
+
+        var scale = MaximumSide / (double)side;
+        var reduction = new ScaleTransform(scale, scale);
+        reduction.Freeze();
+
+        return new TransformedBitmap(image, reduction);
+    }
+
+    /// <summary>
+    /// Turns the straight alpha the image was read as into the premultiplied alpha everything
+    /// downstream expects, and while it is there, takes the background back out of the colour
+    /// of every pixel that was only partly covered by it.
+    ///
+    /// This is the difference between a clean edge and a white outline. A pixel on the rim of
+    /// a logo saved on white is a mixture of the logo and the white; making it half
+    /// transparent leaves the white in the half that stays, which reads as a halo once the
+    /// icon is on a dark button. Undoing the mixture is one subtraction: what a pixel
+    /// contributes is what it shows, less the share of the background it was showing.
+    /// </summary>
+    /// <param name="pixels">The image, in place.</param>
+    /// <param name="background">The colour that was taken off.</param>
+    /// <param name="cut">Whether a background was taken off at all.</param>
+    private static void Premultiply(byte[] pixels, (byte B, byte G, byte R) background, bool cut)
+    {
+        for (var offset = 0; offset < pixels.Length; offset += 4)
+        {
+            var alpha = pixels[offset + 3];
+
+            if (alpha == 255)
+            {
+                continue;
+            }
+
+            if (alpha == 0)
+            {
+                pixels[offset] = 0;
+                pixels[offset + 1] = 0;
+                pixels[offset + 2] = 0;
+                continue;
+            }
+
+            var covered = alpha / 255.0;
+            var behind = 1 - covered;
+
+            pixels[offset] = Contribution(pixels[offset], background.B, covered, behind, cut);
+            pixels[offset + 1] = Contribution(pixels[offset + 1], background.G, covered, behind, cut);
+            pixels[offset + 2] = Contribution(pixels[offset + 2], background.R, covered, behind, cut);
+        }
+    }
+
+    /// <summary>
+    /// What one channel of a partly transparent pixel contributes. With a background to
+    /// subtract that is what the pixel shows less the share of the background showing
+    /// through it; without one there is nothing to undo and it is a plain premultiply.
+    /// </summary>
+    /// <param name="shown">The channel as the image has it.</param>
+    /// <param name="background">The same channel of the background that was taken off.</param>
+    /// <param name="covered">How much of the pixel the subject covers, from zero to one.</param>
+    /// <param name="behind">The remainder, which is how much of the background showed through.</param>
+    /// <param name="cut">Whether a background was taken off at all.</param>
+    private static byte Contribution(byte shown, byte background, double covered, double behind, bool cut) =>
+        (byte)Math.Clamp(Math.Round(cut ? shown - (behind * background) : shown * covered), 0, 255);
 
     /// <summary>
     /// The smallest rectangle holding everything visible, or null when nothing is. Anything

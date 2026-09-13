@@ -114,6 +114,23 @@ public sealed class IconTests : IDisposable
     }
 
     [Fact]
+    public void TheGlyphGridOffersFarMoreThanAHandfulAndEveryOneOfThemDraws()
+    {
+        var common = IconPickerBox.CommonGlyphs;
+        var all = IconPickerBox.FontGlyphs;
+
+        Assert.NotEmpty(common);
+        Assert.All(common, code => Assert.NotNull(IconFactory.ParseGlyph(code)));
+        Assert.All(all, code => Assert.NotNull(IconFactory.ParseGlyph(code)));
+
+        // The list is read out of the font rather than written by hand, so on a machine with
+        // an icon font there is no reason for it to be short. Without one it is empty, and
+        // the curated list stands on its own.
+        Assert.True(all.Count == 0 || all.Count > 500, $"{all.Count} glyphs found.");
+        Assert.Equal(common.Distinct().Count(), common.Count);
+    }
+
+    [Fact]
     public void TurningAnIconOffDropsItsSizeAndColourToo()
     {
         var model = new IconEditModel(new IconConfig
@@ -138,7 +155,6 @@ public sealed class IconTests : IDisposable
             Type = IconKind.File,
             Value = "discord.png",
             Size = 44,
-            Colour = "#CFD4DC",
         });
 
         Assert.True(model.HasIcon);
@@ -149,7 +165,55 @@ public sealed class IconTests : IDisposable
         Assert.Equal(IconKind.File, written.Type);
         Assert.Equal("discord.png", written.Value);
         Assert.Equal(44, written.Size);
-        Assert.Equal("#CFD4DC", written.Colour);
+    }
+
+    [Fact]
+    public void AnImageHasNoColourOfItsOwnToSet()
+    {
+        var model = new IconEditModel(new IconConfig
+        {
+            Type = IconKind.File,
+            Value = "discord.png",
+            Colour = "#CFD4DC",
+        });
+
+        Assert.False(model.HasColour);
+        Assert.Null(model.Colour);
+        Assert.Null(model.ToConfig()!.Colour);
+    }
+
+    [Fact]
+    public void SwitchingAGlyphToAnImageDropsTheColourItWasDrawnIn()
+    {
+        var model = new IconEditModel(new IconConfig
+        {
+            Type = IconKind.Glyph,
+            Value = "E713",
+            Colour = "#FF3D7F",
+        });
+
+        Assert.True(model.HasColour);
+
+        model.Type = IconKind.File;
+
+        Assert.False(model.HasColour);
+        Assert.Null(model.ToConfig()!.Colour);
+    }
+
+    [Fact]
+    public void AColourOnAnImageIsReportedRatherThanIgnoredInSilence()
+    {
+        Directory.CreateDirectory(Paths.IconsDirectory);
+        File.WriteAllBytes(Path.Combine(Paths.IconsDirectory, "logo.png"), Array.Empty<byte>());
+
+        var messages = Validate(new IconConfig
+        {
+            Type = IconKind.File,
+            Value = "logo.png",
+            Colour = "#46B96B",
+        });
+
+        Assert.Contains(messages, m => m.Path.EndsWith(".icon.colour", StringComparison.Ordinal));
     }
 
     [Fact]

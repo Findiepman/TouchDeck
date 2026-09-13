@@ -28,6 +28,46 @@ public static class StyleTranslator
     /// <param name="colour">A value such as <c>#171A1F</c>, <c>#CC171A1F</c> or <c>Red</c>.</param>
     public static Brush Brush(string colour) => BrushCache.GetOrAdd(colour, Parse);
 
+    /// <summary>
+    /// Parses a colour without falling back or complaining, for the places that want to know
+    /// whether a value is a colour at all: the config center's picker, which has to leave a
+    /// half typed hex alone rather than turn it magenta.
+    /// </summary>
+    /// <param name="colour">The value to parse.</param>
+    /// <param name="parsed">The colour, when there is one.</param>
+    public static bool TryColour(string? colour, out Color parsed)
+    {
+        parsed = default;
+
+        if (string.IsNullOrWhiteSpace(colour))
+        {
+            return false;
+        }
+
+        var text = colour.Trim();
+
+        try
+        {
+            if (text.StartsWith('#'))
+            {
+                parsed = ParseHex(text);
+                return true;
+            }
+
+            if (ColorConverter.ConvertFromString(text) is Color named)
+            {
+                parsed = named;
+                return true;
+            }
+        }
+        catch (Exception e) when (e is FormatException or ArgumentException or InvalidOperationException)
+        {
+            return false;
+        }
+
+        return false;
+    }
+
     /// <summary>Parses a comma separated font family list.</summary>
     /// <param name="families">A value such as <c>Segoe UI Variable Display, Segoe UI</c>.</param>
     public static FontFamily Font(string families) =>

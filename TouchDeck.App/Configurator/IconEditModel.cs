@@ -25,7 +25,7 @@ public sealed class IconEditModel : ObservableObject
         _type = icon.Type;
         _value = icon.Value;
         _size = icon.Size;
-        _colour = icon.Colour;
+        _colour = icon.Type == IconKind.File ? null : icon.Colour;
     }
 
     /// <summary>Every icon kind, for the dropdown.</summary>
@@ -45,8 +45,16 @@ public sealed class IconEditModel : ObservableObject
         {
             if (Set(ref _type, value))
             {
+                // An image draws in its own colours, so a colour left over from when this was
+                // a glyph would have nothing to do and no field to show it in.
+                if (value == IconKind.File)
+                {
+                    Colour = null;
+                }
+
                 RaiseQuiet(nameof(HasIcon));
                 RaiseQuiet(nameof(IsFile));
+                RaiseQuiet(nameof(HasColour));
                 RaiseQuiet(nameof(ValueLabel));
                 RaiseQuiet(nameof(ValueHint));
             }
@@ -68,8 +76,8 @@ public sealed class IconEditModel : ObservableObject
     }
 
     /// <summary>
-    /// Icon colour, or null. On a file icon, setting this tints the image instead of drawing
-    /// it in its own colours.
+    /// Icon colour, or null to follow the theme. A glyph or a piece of text is drawn in this
+    /// colour; an image has colours of its own and is left alone.
     /// </summary>
     public string? Colour
     {
@@ -83,6 +91,12 @@ public sealed class IconEditModel : ObservableObject
     /// <summary>True when the icon comes from a file, which is what shows the browse button.</summary>
     public bool IsFile => _type == IconKind.File;
 
+    /// <summary>
+    /// True when a colour means anything here, which is everything but an image. There is no
+    /// colour field on an image, because an image already has its own.
+    /// </summary>
+    public bool HasColour => _type is IconKind.Glyph or IconKind.Text;
+
     /// <summary>What to call the value box, which differs per kind.</summary>
     public string ValueLabel => _type switch
     {
@@ -95,7 +109,8 @@ public sealed class IconEditModel : ObservableObject
     /// <summary>A line of help under the value box.</summary>
     public string ValueHint => _type switch
     {
-        IconKind.File => "A png in the icons folder, or a full path. Svg is not supported yet.",
+        IconKind.File => "A png in the icons folder, or a full path. It keeps its own colours. " +
+                         "Svg is not supported yet.",
         IconKind.Glyph => "A Segoe Fluent Icons glyph, or its code point such as E713.",
         IconKind.Text => "Drawn at icon size, for one or two characters.",
         _ => string.Empty,
@@ -117,7 +132,7 @@ public sealed class IconEditModel : ObservableObject
             Type = _type,
             Value = string.IsNullOrWhiteSpace(_value) ? null : _value,
             Size = _size,
-            Colour = _colour,
+            Colour = HasColour ? _colour : null,
         };
     }
 }

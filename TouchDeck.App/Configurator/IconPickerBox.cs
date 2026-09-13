@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -5,6 +6,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Threading;
 using Microsoft.Win32;
 using TouchDeck.App.Rendering;
 using TouchDeck.Core.Configuration;
@@ -42,26 +44,51 @@ public sealed class IconPickerBox : Border
         typeof(IconPickerBox),
         new FrameworkPropertyMetadata(null, OnAppearanceChanged));
 
+    /// <summary>The icon fonts to offer glyphs from, best first.</summary>
+    private static readonly string[] GlyphFonts = { "Segoe Fluent Icons", "Segoe MDL2 Assets" };
+
     /// <summary>
-    /// Glyphs worth one click. These are code points rather than names: the grid draws the
-    /// real glyph, so what you see is what you get, and nothing here can be mislabelled.
-    /// Any other Segoe Fluent Icons code point can still be typed into the box.
+    /// The glyphs worth putting first. These are code points rather than names: the grid
+    /// draws the real glyph, so what you see is what you get, and nothing here can be
+    /// mislabelled. Anything in this list the font turns out not to have is dropped, so an
+    /// older Windows shows a shorter row rather than a row of empty boxes.
     /// </summary>
-    private static readonly string[] Glyphs =
+    private static readonly string[] Common =
     {
-        "E700", "E70D", "E70E", "E70F", "E710", "E711", "E712", "E713",
-        "E714", "E715", "E716", "E717", "E71A", "E71B", "E721", "E722",
-        "E72C", "E72E", "E734", "E735", "E74D", "E74E", "E74F", "E767",
-        "E768", "E769", "E76B", "E76C", "E77B", "E77F", "E783", "E785",
-        "E786", "E7E8", "E7F4", "E7F8", "E80F", "E895", "E896", "E898",
-        "E8A5", "E8B7", "E8BD", "E8C8", "E8EF", "E8FB", "E90F", "E91B",
-        "E930", "E945", "E946", "E9D9", "EA80", "EB51", "EC4E", "F108",
+        // Decks, apps and windows.
+        "E700", "E71D", "E713", "E7EE", "E737", "E71E", "E7C4", "E8B7", "E8A9", "E8FD",
+        "E7C5", "E8B0", "E770", "E80F", "E8A1", "E7F4", "E721", "E794", "E71C", "E8AB",
+
+        // Media and sound.
+        "E768", "E769", "E71A", "E893", "E892", "E100", "E101", "E102", "E103", "E104",
+        "E767", "E74F", "E995", "E994", "E993", "E992", "E720", "EC54", "EC55", "E7F6",
+        "E8D6", "E8B2", "E90A", "E90B", "E714", "E786", "EA69", "E8AA", "E93C", "E9D9",
+
+        // Communication.
+        "E715", "E716", "E717", "E8BD", "E8F2", "E8C9", "E8BA", "E910", "E77B", "E13D",
+        "E7E7", "E8C8", "E8C6", "E8C1", "E8AC", "E74D", "E74E", "E74B", "E74A",
+
+        // Movement and arrows.
+        "E70D", "E70E", "E76B", "E76C", "E72B", "E72A", "E72C", "E895", "E896", "E898",
+        "E946", "E945", "E930", "E7A7", "E7A6", "E72E", "E785", "E72E", "E1CB", "E1CE",
+
+        // Status and signs.
+        "E734", "E735", "E8D9", "E930", "E9CE", "EA39", "E783", "E7BA", "E7BC", "E946",
+        "E10B", "E10A", "E73E", "E711", "E710", "E712", "E738", "E8FB", "E894", "E8BB",
+
+        // Things and places.
+        "E80F", "E707", "E718", "E719", "E722", "E7B5", "E7C3", "E7EE", "E77F", "E7B8",
+        "E706", "E708", "E709", "E70A", "E701", "E702", "E703", "E704", "E705", "E753",
     };
+
+    /// <summary>Every glyph the icon font actually has, worked out once.</summary>
+    private static readonly Lazy<GlyphSet> Available = new(FindGlyphs);
 
     private readonly TextBox _text = new();
     private readonly Border _preview = new();
     private readonly Button _pick = new();
     private readonly Button _cut = new();
+    private readonly Button _clear = new();
     private readonly Popup _popup = new();
 
     private IconFactory? _factory;
@@ -86,10 +113,9 @@ public sealed class IconPickerBox : Border
         _preview.Height = 64;
         _preview.CornerRadius = new CornerRadius(4);
         _preview.BorderThickness = new Thickness(1);
-        _preview.Margin = new Thickness(8, 0, 0, 0);
+        _preview.Margin = new Thickness(10, 0, 0, 0);
 
         _pick.Content = "Choose";
-        _pick.Margin = new Thickness(8, 0, 0, 0);
         _pick.Click += (_, _) => Choose();
 
         _cut.Content = "No background";
@@ -97,31 +123,65 @@ public sealed class IconPickerBox : Border
         _cut.ToolTip = "Make the flat background transparent and trim the empty margin.";
         _cut.Click += (_, _) => CutOutCurrent();
 
+        _clear.Content = "\uE711";
+        _clear.FontFamily = StyleTranslator.Font("Segoe Fluent Icons, Segoe MDL2 Assets");
+        _clear.Margin = new Thickness(8, 0, 0, 0);
+        _clear.ToolTip = "Take this icon off the button.";
+        _clear.SetResourceReference(StyleProperty, "Button.Square");
+        _clear.Click += (_, _) => Value = null;
+
         _popup.PlacementTarget = _preview;
         _popup.Placement = PlacementMode.Bottom;
         _popup.StaysOpen = false;
         _popup.AllowsTransparency = true;
-        _popup.HorizontalOffset = -260;
+        _popup.HorizontalOffset = -(GlyphGridWidth - 64);
         _popup.VerticalOffset = 4;
 
-        var row = new Grid();
-        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        var buttons = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Margin = new Thickness(0, 8, 0, 0),
+        };
 
-        row.Children.Add(_text);
+        buttons.Children.Add(_pick);
+        buttons.Children.Add(_cut);
+        buttons.Children.Add(_clear);
+
+        var layout = new Grid();
+        layout.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        layout.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        layout.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        layout.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+        layout.Children.Add(_text);
+        Grid.SetRow(buttons, 1);
+        layout.Children.Add(buttons);
         Grid.SetColumn(_preview, 1);
-        row.Children.Add(_preview);
-        Grid.SetColumn(_pick, 2);
-        row.Children.Add(_pick);
-        Grid.SetColumn(_cut, 3);
-        row.Children.Add(_cut);
-        row.Children.Add(_popup);
+        Grid.SetRowSpan(_preview, 2);
+        layout.Children.Add(_preview);
+        layout.Children.Add(_popup);
 
-        Child = row;
+        Child = layout;
         Loaded += (_, _) => Paint();
     }
+
+    /// <summary>How wide the glyph grid is, which is ten chips and the padding round them.</summary>
+    private static double GlyphGridWidth => (GlyphColumns * GlyphChip) + 24;
+
+    /// <summary>Chips across the glyph grid.</summary>
+    private const int GlyphColumns = 10;
+
+    /// <summary>Size of one glyph chip, its margin included.</summary>
+    private const double GlyphChip = 34;
+
+    /// <summary>How many chips are built before the dispatcher gets a turn.</summary>
+    private const int GlyphBatch = 200;
+
+    /// <summary>The glyphs the grid puts first, with anything the icon font lacks dropped.</summary>
+    public static IReadOnlyList<string> CommonGlyphs => Available.Value.Common;
+
+    /// <summary>Every glyph the icon font offers, which is the rest of the grid.</summary>
+    public static IReadOnlyList<string> FontGlyphs => Available.Value.All;
 
     /// <summary>The icon value, as it is written in config.</summary>
     public string? Value
@@ -146,6 +206,55 @@ public sealed class IconPickerBox : Border
 
     private static void OnAppearanceChanged(DependencyObject d, DependencyPropertyChangedEventArgs e) =>
         ((IconPickerBox)d).Paint();
+
+    /// <summary>
+    /// Every glyph in the icon font, rather than a list written out by hand. Reading the
+    /// font's own character map means the grid cannot claim a glyph the font does not have,
+    /// and it grows by itself when Windows ships more of them.
+    /// </summary>
+    private static GlyphSet FindGlyphs()
+    {
+        foreach (var name in GlyphFonts)
+        {
+            var family = Fonts.SystemFontFamilies.FirstOrDefault(f => f.FamilyNames.Values.Any(
+                n => string.Equals(n, name, StringComparison.OrdinalIgnoreCase)));
+
+            if (family is null)
+            {
+                continue;
+            }
+
+            foreach (var typeface in family.GetTypefaces())
+            {
+                if (!typeface.TryGetGlyphTypeface(out var glyphs))
+                {
+                    continue;
+                }
+
+                // The private use area is where an icon font keeps its symbols. Everything
+                // outside it is the handful of real characters the font also carries.
+                var codes = glyphs.CharacterToGlyphMap.Keys
+                    .Where(c => c is >= 0xE000 and <= 0xF8FF)
+                    .OrderBy(c => c)
+                    .Select(c => c.ToString("X4", CultureInfo.InvariantCulture))
+                    .ToArray();
+
+                if (codes.Length > 0)
+                {
+                    var held = new HashSet<string>(codes, StringComparer.OrdinalIgnoreCase);
+
+                    return new GlyphSet(
+                        name,
+                        Common.Where(held.Contains).Distinct(StringComparer.OrdinalIgnoreCase).ToArray(),
+                        codes);
+                }
+            }
+        }
+
+        // No icon font to read, so the hand written list is all there is. It will draw as
+        // empty boxes, which is already what a button using one of them looks like.
+        return new GlyphSet(null, Common.Distinct(StringComparer.OrdinalIgnoreCase).ToArray(), Array.Empty<string>());
+    }
 
     private void Choose()
     {
@@ -324,8 +433,8 @@ public sealed class IconPickerBox : Border
     }
 
     /// <summary>
-    /// The image with its flat background removed and its empty margin trimmed, or null when
-    /// neither was needed and it should be left exactly as it is.
+    /// The image prepared for use as an icon, or null when there was nothing to do and it
+    /// should be left exactly as it is.
     /// </summary>
     /// <param name="path">An absolute path to an image file.</param>
     private static BitmapSource? CutOut(string path)
@@ -368,52 +477,24 @@ public sealed class IconPickerBox : Border
 
     private UIElement BuildGlyphs()
     {
-        var grid = new UniformGrid { Columns = 8, Margin = new Thickness(12) };
+        var glyphs = Available.Value;
+        var contents = new StackPanel { Width = GlyphGridWidth };
 
-        foreach (var code in Glyphs)
+        contents.Children.Add(Heading("The ones you probably want", first: true));
+        contents.Children.Add(Chips(glyphs.Common));
+
+        if (glyphs.All.Count > 0)
         {
-            var value = code;
-
-            var chip = new Border
-            {
-                Width = 34,
-                Height = 34,
-                Margin = new Thickness(0, 0, 4, 4),
-                CornerRadius = new CornerRadius(3),
-                Background = Resource("Field", Color.FromRgb(0x1A, 0x19, 0x17)),
-                BorderThickness = new Thickness(1),
-                BorderBrush = Resource("EdgeSoft", Color.FromRgb(0x2F, 0x2C, 0x2A)),
-                Cursor = Cursors.Hand,
-                ToolTip = value,
-                Child = new TextBlock
-                {
-                    Text = IconFactory.ParseGlyph(value) ?? string.Empty,
-                    FontFamily = StyleTranslator.Font("Segoe Fluent Icons, Segoe MDL2 Assets"),
-                    FontSize = 18,
-                    Foreground = Resource("Ink", Color.FromRgb(0xE8, 0xEA, 0xED)),
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center,
-                },
-            };
-
-            chip.MouseLeftButtonDown += (_, e) =>
-            {
-                Value = value;
-                _popup.IsOpen = false;
-                e.Handled = true;
-            };
-
-            grid.Children.Add(chip);
+            contents.Children.Add(Heading($"Everything in {glyphs.Font} — {glyphs.All.Count}", first: false));
+            contents.Children.Add(Chips(glyphs.All));
         }
 
-        var panel = new StackPanel { Width = 320 };
-        panel.Children.Add(grid);
-        panel.Children.Add(new TextBlock
+        contents.Children.Add(new TextBlock
         {
-            Text = "Any other Segoe Fluent Icons code point can be typed into the box.",
-            Margin = new Thickness(12, 0, 12, 12),
+            Text = "Any code point can also be typed into the box, as E713 or U+E713.",
+            Margin = new Thickness(12, 8, 12, 12),
             TextWrapping = TextWrapping.Wrap,
-            Foreground = Resource("InkDim", Color.FromRgb(0x8A, 0x93, 0xA5)),
+            Foreground = Resource("InkDim", Color.FromRgb(0x9C, 0x94, 0x8A)),
             FontSize = 11,
         });
 
@@ -423,8 +504,89 @@ public sealed class IconPickerBox : Border
             BorderBrush = Resource("Edge", Color.FromRgb(0x3A, 0x37, 0x35)),
             BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(6),
-            Child = panel,
+            Child = new ScrollViewer
+            {
+                MaxHeight = 460,
+                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
+                Content = contents,
+            },
         };
+    }
+
+    private TextBlock Heading(string text, bool first) => new()
+    {
+        Text = text,
+        Margin = new Thickness(12, first ? 12 : 14, 12, 8),
+        Foreground = Resource("InkDim", Color.FromRgb(0x9C, 0x94, 0x8A)),
+        FontFamily = TryFindResource("Legend") as FontFamily ?? new FontFamily("Segoe UI"),
+        FontSize = 11,
+    };
+
+    private UIElement Chips(IReadOnlyList<string> codes)
+    {
+        var grid = new UniformGrid { Columns = GlyphColumns, Margin = new Thickness(12, 0, 12, 0) };
+        Fill(grid, codes, 0);
+        return grid;
+    }
+
+    /// <summary>
+    /// Adds chips a few rows at a time, handing the dispatcher back between batches. The font
+    /// carries a couple of thousand glyphs and building that many controls in one go is long
+    /// enough to feel: this way the grid is on screen immediately and finishes filling itself
+    /// in underneath the scroll bar.
+    /// </summary>
+    /// <param name="grid">The grid being filled.</param>
+    /// <param name="codes">Every code point to add.</param>
+    /// <param name="from">Where this batch starts.</param>
+    private void Fill(Panel grid, IReadOnlyList<string> codes, int from)
+    {
+        var to = Math.Min(codes.Count, from + GlyphBatch);
+
+        for (var index = from; index < to; index++)
+        {
+            grid.Children.Add(Chip(codes[index]));
+        }
+
+        if (to < codes.Count)
+        {
+            Dispatcher.InvokeAsync(() => Fill(grid, codes, to), DispatcherPriority.Background);
+        }
+    }
+
+    private Border Chip(string code)
+    {
+        var chip = new Border
+        {
+            Width = GlyphChip - 4,
+            Height = GlyphChip - 4,
+            Margin = new Thickness(0, 0, 4, 4),
+            CornerRadius = new CornerRadius(3),
+            Background = Resource("Field", Color.FromRgb(0x1A, 0x19, 0x17)),
+            BorderThickness = new Thickness(1),
+            BorderBrush = Resource("EdgeSoft", Color.FromRgb(0x2F, 0x2C, 0x2A)),
+            Cursor = Cursors.Hand,
+            ToolTip = code,
+            Child = new TextBlock
+            {
+                Text = IconFactory.ParseGlyph(code) ?? string.Empty,
+                FontFamily = StyleTranslator.Font("Segoe Fluent Icons, Segoe MDL2 Assets"),
+                FontSize = 17,
+                Foreground = Resource("Ink", Color.FromRgb(0xEF, 0xE9, 0xE0)),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+            },
+        };
+
+        // On the release, so that a plain click picks rather than a press and hold.
+        chip.PreviewMouseLeftButtonUp += (_, e) =>
+        {
+            Value = code;
+            _popup.IsOpen = false;
+            e.Handled = true;
+        };
+
+        return chip;
     }
 
     private void Paint()
@@ -438,11 +600,15 @@ public sealed class IconPickerBox : Border
 
         _updating = false;
 
+        var value = Value;
+
         _pick.IsEnabled = Kind is IconKind.File or IconKind.Glyph;
         _pick.Content = Kind == IconKind.File ? "Browse" : "Choose";
 
         _cut.Visibility = Kind == IconKind.File ? Visibility.Visible : Visibility.Collapsed;
-        _cut.IsEnabled = !string.IsNullOrWhiteSpace(Value) && !IconFile.IsInterpolated(Value);
+        _cut.IsEnabled = !string.IsNullOrWhiteSpace(value) && !IconFile.IsInterpolated(value);
+
+        _clear.IsEnabled = !string.IsNullOrWhiteSpace(value);
 
         _preview.BorderBrush = Resource("Edge", Color.FromRgb(0x3A, 0x37, 0x35));
         _preview.Background = Resource("Field", Color.FromRgb(0x1A, 0x19, 0x17));
@@ -474,4 +640,10 @@ public sealed class IconPickerBox : Border
 
     private Brush Resource(string key, Color fallback) =>
         TryFindResource(key) as Brush ?? new SolidColorBrush(fallback);
+
+    /// <summary>The glyphs an icon font offers, split into the handy ones and all of them.</summary>
+    /// <param name="Font">The font they came from, or null when none was found.</param>
+    /// <param name="Common">The curated list, with anything the font lacks dropped.</param>
+    /// <param name="All">Every private use code point in the font.</param>
+    private sealed record GlyphSet(string? Font, IReadOnlyList<string> Common, IReadOnlyList<string> All);
 }
