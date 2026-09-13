@@ -37,6 +37,10 @@ public partial class DeckWindow : Window
     private HwndSource? _source;
     private bool _tooSmallReported;
 
+    /// <summary>Whether the first contact of each kind has been reported yet.</summary>
+    private bool _touchReported;
+    private bool _mouseReported;
+
     /// <summary>Creates the panel.</summary>
     /// <param name="viewModel">What to show.</param>
     /// <param name="icons">Where button icons and the background image are drawn from.</param>
@@ -139,6 +143,19 @@ public partial class DeckWindow : Window
 
         foreach (var contact in TouchWindow.Read(handle, (int)(wParam & 0xFFFF), lParam))
         {
+            // Once, on the first contact. Which way a press arrives is the whole question
+            // when the pointer is being dragged onto the panel, and it is not otherwise
+            // possible to tell from outside.
+            if (!_touchReported)
+            {
+                _touchReported = true;
+                _logger.Information(
+                    "First touch arrived as WM_TOUCH at {X},{Y}, so Windows is sending this " +
+                    "window contacts rather than emulating a mouse.",
+                    contact.X,
+                    contact.Y);
+            }
+
             switch (contact.Phase)
             {
                 case TouchPhase.Down when Under(contact) is { } view:
@@ -156,6 +173,30 @@ public partial class DeckWindow : Window
 
         handled = true;
         return 0;
+    }
+
+    /// <summary>
+    /// Reports the first press that arrives as a mouse click. On a deck with no mouse
+    /// plugged in that means a finger was turned into one, which is what moves the pointer
+    /// and, in a game that steers by the mouse, swings the camera.
+    /// </summary>
+    protected override void OnPreviewMouseLeftButtonDown(System.Windows.Input.MouseButtonEventArgs e)
+    {
+        base.OnPreviewMouseLeftButtonDown(e);
+
+        if (_mouseReported)
+        {
+            return;
+        }
+
+        _mouseReported = true;
+
+        var at = e.GetPosition(this);
+        _logger.Information(
+            "First press arrived as a mouse click at {X:0},{Y:0}. If that was a finger, " +
+            "Windows is still emulating a mouse for this window.",
+            at.X,
+            at.Y);
     }
 
     /// <summary>The button under a contact, or null when it landed on the gap between them.</summary>
