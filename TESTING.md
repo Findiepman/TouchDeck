@@ -99,11 +99,21 @@ Injected touch is the only way to drive the panel on a machine where a game hold
 cursor; ordinary synthetic clicks do not land at all. It does not cover everything a finger
 does, so the checks below are still worth doing by hand.
 
+If it ever comes back, this says whether tapping is what moves the pointer:
+
+```
+powershell -ExecutionPolicy Bypass -File tools\pointer-watch.ps1
+```
+
+Tap a few buttons while it counts down. It prints every jump the pointer made and marks the
+ones that landed on the panel. None of them should.
+
 1. Note where the mouse pointer is. Tap a button on the panel. The pointer has not moved.
 2. Start a game that steers the camera with the mouse, and press a button on the panel while
    it has the mouse. The camera does not jolt.
-3. The log says "Taking touch input directly" at startup. If it says Windows refused, or
-   that it was turned off, that is why a tap is still moving the pointer.
+3. The log says both "Taking touch input directly" and "WPF's own touch stack is off" at
+   startup. Both are needed: they stop two different things from promoting a tap to the
+   mouse, and either one alone leaves the pointer moving.
 4. Set `behaviour.claimTouchInput` to false and restart. Taps move the pointer again, which
    is the old behaviour, and every button still works.
 

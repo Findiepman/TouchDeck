@@ -507,9 +507,17 @@ game. A window that has not asked Windows for touch input gets mouse emulation i
 pointer is moved to wherever your finger landed and a click is synthesised there. The panel
 is on another screen, so every tap used to drag the pointer off the screen you were looking
 at, and a game that steers its camera by mouse movement reads that jump as one enormous
-flick. The panel asks for touch input now, so nothing is moved and nothing is synthesised.
-If you ever need the old behaviour back, `behaviour.claimTouchInput` turns it off, and the
-log line at startup says which way round it is.
+flick.
+
+Two separate things did that, so there are two things stopping it. The panel asks Windows for
+touch input, which stops the window manager synthesising anything, and WPF's own touch stack
+is switched off, because it talks to the Windows tablet input service and that service
+promotes touch to the mouse on its own account. The startup log says both. Nothing is lost:
+the panel reads touch from the window messages itself, and the config center still works
+under a finger.
+
+`behaviour.claimTouchInput` turns the whole thing off if you ever want the old behaviour, and
+`tools\pointer-watch.ps1` will tell you whether tapping is really what is moving the pointer.
 
 **A config file is broken.** The deck keeps running exactly as it was, on the last
 configuration that loaded. The log says which file, which JSON path and which line.

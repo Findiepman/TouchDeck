@@ -118,6 +118,13 @@ public partial class App : Application
             return;
         }
 
+        // Before any window exists, because that is when WPF decides whether to start its
+        // stylus stack, and that stack promotes touch to the mouse behind the panel's back.
+        if (configuration.App.Behaviour.ClaimTouchInput)
+        {
+            StylusStack.StandDown(_logger);
+        }
+
         _instance.ListenForQuitRequest(() => Dispatcher.BeginInvoke(() => Shutdown()));
         _instance.ListenForConfigureRequest(() => Dispatcher.BeginInvoke(() => ShowConfigurator(exitWhenClosed: false)));
 
