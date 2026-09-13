@@ -74,6 +74,16 @@ public sealed class DeckButtonView : Border
 
     private LabelPosition LabelPosition => Config.LabelPosition ?? _style.LabelPosition;
 
+    /// <summary>
+    /// Presses the button from outside, for touch the window routed itself rather than
+    /// letting WPF do it. Pressing one that is already down does nothing, so it does not
+    /// matter if both routes reach the same button.
+    /// </summary>
+    public void Press() => BeginPress();
+
+    /// <summary>Ends a press started by <see cref="Press"/>. Releasing one that is up does nothing.</summary>
+    public void Release() => EndPress();
+
     /// <inheritdoc />
     protected override void OnTouchDown(TouchEventArgs e)
     {

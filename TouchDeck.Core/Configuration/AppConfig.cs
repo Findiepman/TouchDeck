@@ -96,6 +96,15 @@ public sealed record BehaviourConfig
 
     public bool WakeOnTouch { get; init; } = true;
 
+    /// <summary>
+    /// Take touch straight from Windows rather than letting it be turned into mouse clicks.
+    /// A window that has not asked for touch gets the pointer moved to wherever the finger
+    /// landed, which on a second screen means every tap drags the pointer off the screen you
+    /// are looking at. A game that steers by mouse movement reads that as a huge flick.
+    /// Turn it off only if touch stops working.
+    /// </summary>
+    public bool ClaimTouchInput { get; init; } = true;
+
     public int LongPressMs { get; init; } = 500;
 
     public int DoubleTapMs { get; init; } = 250;

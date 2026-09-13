@@ -502,6 +502,15 @@ is usually Windows sending touches to the wrong screen. Open Tablet PC Settings,
 Setup, choose Touch input, and press Enter until the prompt appears on the touchscreen, then
 touch it.
 
+**The camera in a game jolts when you press a button.** This was the mouse pointer, not the
+game. A window that has not asked Windows for touch input gets mouse emulation instead: the
+pointer is moved to wherever your finger landed and a click is synthesised there. The panel
+is on another screen, so every tap used to drag the pointer off the screen you were looking
+at, and a game that steers its camera by mouse movement reads that jump as one enormous
+flick. The panel asks for touch input now, so nothing is moved and nothing is synthesised.
+If you ever need the old behaviour back, `behaviour.claimTouchInput` turns it off, and the
+log line at startup says which way round it is.
+
 **A config file is broken.** The deck keeps running exactly as it was, on the last
 configuration that loaded. The log says which file, which JSON path and which line.
 
@@ -517,7 +526,7 @@ to see every action as it runs.
 
 ```
 dotnet build          # everything
-dotnet test           # 195 tests
+dotnet test           # 292 tests
 ```
 
 | Project | Holds |

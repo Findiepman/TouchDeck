@@ -550,6 +550,8 @@
                     <CheckBox Content="Reload when a config file is saved" IsChecked="{Binding HotReload}" />
                     <CheckBox Content="Keep the touchscreen awake" IsChecked="{Binding PreventDisplaySleep}" />
                     <CheckBox Content="Wake on touch without firing the button" IsChecked="{Binding WakeOnTouch}" />
+                    <CheckBox Content="Keep taps off the mouse pointer" IsChecked="{Binding ClaimTouchInput}"
+                              ToolTip="Take touch from Windows directly. Without this a tap moves the mouse pointer onto the panel, which a game reads as a flick of the mouse. Turn it off only if touch stops working." />
 
                     <Grid Margin="0,10,0,0">
                         <Grid.ColumnDefinitions>

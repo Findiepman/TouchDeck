@@ -18,11 +18,18 @@
 #>
 [CmdletBinding()]
 param(
-    [string] $Exe = (Join-Path $PSScriptRoot '..\TouchDeck.App\bin\Debug\net9.0-windows\TouchDeck.exe'),
-    [string] $WorkDir = (Join-Path ([System.IO.Path]::GetTempPath()) 'touchdeck-focus-test')
+    [string] $Exe,
+    [string] $WorkDir
 )
 
 $ErrorActionPreference = 'Stop'
+
+# Resolved here rather than in the param block: a script that opens with a comment based
+# help block gets an empty $PSScriptRoot inside a parameter default, which turns the default
+# into an error instead of a path.
+$here = Split-Path -Parent $MyInvocation.MyCommand.Path
+if (-not $Exe) { $Exe = Join-Path $here '..\TouchDeck.App\bin\Debug\net9.0-windows\TouchDeck.exe' }
+if (-not $WorkDir) { $WorkDir = Join-Path ([System.IO.Path]::GetTempPath()) 'touchdeck-focus-test' }
 
 Add-Type @"
 using System;

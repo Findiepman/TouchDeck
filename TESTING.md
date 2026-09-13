@@ -82,6 +82,31 @@ Needs eyes rather than a test, because the point of it is how it looks.
     handy glyphs first and then every glyph the font has, and keeps filling in as you scroll.
     One click on any of them sets it; no holding, no dragging.
 
+## Taps and the mouse pointer
+
+The point of this one is that nothing happens.
+
+```
+powershell -ExecutionPolicy Bypass -File tools	ouch-test.ps1
+```
+
+It starts the deck against a throwaway config of two buttons, injects real touch contacts,
+and checks that each tap runs the right button's action, that a tap on an empty square runs
+nothing, and that the pointer is never dragged onto the panel. It exits non-zero if any of
+that fails, and stops the deck when it is done, so start your own again afterwards.
+
+Injected touch is the only way to drive the panel on a machine where a game holds the
+cursor; ordinary synthetic clicks do not land at all. It does not cover everything a finger
+does, so the checks below are still worth doing by hand.
+
+1. Note where the mouse pointer is. Tap a button on the panel. The pointer has not moved.
+2. Start a game that steers the camera with the mouse, and press a button on the panel while
+   it has the mouse. The camera does not jolt.
+3. The log says "Taking touch input directly" at startup. If it says Windows refused, or
+   that it was turned off, that is why a tap is still moving the pointer.
+4. Set `behaviour.claimTouchInput` to false and restart. Taps move the pointer again, which
+   is the old behaviour, and every button still works.
+
 ## Changing page
 
 The thing to watch for is a press carrying through to the page you arrive on.

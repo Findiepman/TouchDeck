@@ -62,6 +62,56 @@ internal static class NativeMethods
     /// <summary>The effective dpi, which is what Windows actually renders that monitor at.</summary>
     internal const int MdtEffectiveDpi = 0;
 
+    /// <summary>Touch contacts, sent only to a window that asked for them.</summary>
+    internal const int WmTouch = 0x0240;
+
+    internal const uint TouchEventMove = 0x0001;
+    internal const uint TouchEventDown = 0x0002;
+    internal const uint TouchEventUp = 0x0004;
+
+    /// <summary>
+    /// Ask for contacts as they arrive rather than after Windows has decided they are not a
+    /// palm. The wait is there to protect handwriting; a deck button would rather be quick.
+    /// </summary>
+    internal const uint TwfWantPalm = 0x00000002;
+
+    /// <summary>A screen or client position in pixels.</summary>
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct Point
+    {
+        public int X;
+
+        public int Y;
+    }
+
+    /// <summary>
+    /// One contact in a <see cref="WmTouch"/> message. The position is in hundredths of a
+    /// screen pixel, which is what makes a touchscreen smoother than a mouse.
+    /// </summary>
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct TouchInput
+    {
+        public int X;
+
+        public int Y;
+
+        public nint Source;
+
+        public int Id;
+
+        public uint Flags;
+
+        public uint Mask;
+
+        public uint Time;
+
+        public nint ExtraInfo;
+
+        public uint ContactWidth;
+
+        public uint ContactHeight;
+    }
+
     [StructLayout(LayoutKind.Sequential)]
     internal struct Rect
     {
@@ -251,6 +301,30 @@ internal static class NativeMethods
 
     [DllImport("dwmapi.dll")]
     internal static extern int DwmSetWindowAttribute(nint window, int attribute, ref int value, int size);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool RegisterTouchWindow(nint window, uint flags);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool UnregisterTouchWindow(nint window);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool IsTouchWindow(nint window, out uint flags);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool GetTouchInputInfo(nint input, uint count, [Out] TouchInput[] contacts, int size);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool CloseTouchInputHandle(nint input);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool ScreenToClient(nint window, ref Point point);
 
     /// <summary>Reads a window long, using the pointer sized call on 64 bit.</summary>
     internal static nint GetWindowLongPtr(nint window, int index) =>

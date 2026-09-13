@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Interop;
+using System.Windows.Media;
 using System.Windows.Threading;
 using Microsoft.Win32;
 using Serilog;
@@ -7,6 +8,7 @@ using TouchDeck.App.Rendering;
 using TouchDeck.App.ViewModels;
 using TouchDeck.Core.Configuration;
 using TouchDeck.Platform.Display;
+using TouchDeck.Platform.Input;
 using TouchDeck.Platform.Windowing;
 
 namespace TouchDeck.App.Views;
@@ -29,6 +31,10 @@ public partial class DeckWindow : Window
     private readonly SurfaceGate _gate = new();
     private readonly DispatcherTimer _impatience;
 
+    /// <summary>Which button each finger landed on, so it is the one that gets the release.</summary>
+    private readonly Dictionary<int, DeckButtonView> _fingers = new();
+
+    private HwndSource? _source;
     private bool _tooSmallReported;
 
     /// <summary>Creates the panel.</summary>
@@ -81,13 +87,116 @@ public partial class DeckWindow : Window
             _logger.Error("The panel could not be marked no activate. Presses may steal focus.");
         }
 
+        TakeTouchInput(handle);
+
         Refresh();
+    }
+
+    /// <summary>
+    /// Asks Windows for touch contacts rather than the mouse clicks it would otherwise
+    /// synthesise. Emulation moves the pointer to wherever the finger landed, and the panel
+    /// is on another screen, so every tap used to drag the pointer off the screen the user
+    /// was looking at. A game steering its camera by mouse movement reads that as one
+    /// enormous flick, which is what this is here to stop.
+    /// </summary>
+    /// <param name="handle">The panel's window handle.</param>
+    private void TakeTouchInput(nint handle)
+    {
+        if (!_viewModel.Configuration.App.Behaviour.ClaimTouchInput)
+        {
+            _logger.Information("Not taking touch input, so a tap moves the mouse pointer as usual.");
+            return;
+        }
+
+        if (HwndSource.FromHwnd(handle) is not { } source)
+        {
+            return;
+        }
+
+        if (!TouchWindow.Claim(handle, _logger))
+        {
+            return;
+        }
+
+        _source = source;
+        source.AddHook(OnWindowMessage);
+
+        _logger.Information("Taking touch input directly, so a tap does not move the mouse pointer.");
+    }
+
+    /// <summary>
+    /// Routes a touch contact to the button under it. Having asked Windows for contacts, the
+    /// panel has to deliver them itself: WPF's own touch events come from a different path
+    /// that asking may well have switched off. Both are harmless together, because pressing
+    /// a button that is already down does nothing.
+    /// </summary>
+    private nint OnWindowMessage(nint handle, int message, nint wParam, nint lParam, ref bool handled)
+    {
+        if (message != TouchWindow.TouchMessage)
+        {
+            return 0;
+        }
+
+        foreach (var contact in TouchWindow.Read(handle, (int)(wParam & 0xFFFF), lParam))
+        {
+            switch (contact.Phase)
+            {
+                case TouchPhase.Down when Under(contact) is { } view:
+                    _fingers[contact.Id] = view;
+                    view.Press();
+                    break;
+
+                case TouchPhase.Up when _fingers.Remove(contact.Id, out var pressed):
+                    // The one the finger landed on, not the one it happens to be over now,
+                    // so sliding off a button still ends the press on that button.
+                    pressed.Release();
+                    break;
+            }
+        }
+
+        handled = true;
+        return 0;
+    }
+
+    /// <summary>The button under a contact, or null when it landed on the gap between them.</summary>
+    /// <param name="contact">Where the finger is, in the window's own pixels.</param>
+    private DeckButtonView? Under(TouchContact contact)
+    {
+        if (_source?.CompositionTarget is not { } target)
+        {
+            return null;
+        }
+
+        var point = target.TransformFromDevice.Transform(new Point(contact.X, contact.Y));
+
+        if (VisualTreeHelper.HitTest(this, point)?.VisualHit is not { } hit)
+        {
+            return null;
+        }
+
+        for (DependencyObject? node = hit; node is not null; node = VisualTreeHelper.GetParent(node))
+        {
+            if (node is DeckButtonView view)
+            {
+                return view;
+            }
+        }
+
+        return null;
     }
 
     /// <inheritdoc />
     protected override void OnClosed(EventArgs e)
     {
         _impatience.Stop();
+
+        if (_source is not null)
+        {
+            _source.RemoveHook(OnWindowMessage);
+            TouchWindow.Release(_source.Handle);
+            _source = null;
+        }
+
         SystemEvents.DisplaySettingsChanged -= OnDisplaySettingsChanged;
         _viewModel.SurfaceChanged -= OnSurfaceChanged;
         Surface.LayoutComputed -= OnLayoutComputed;

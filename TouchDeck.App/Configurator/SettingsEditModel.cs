@@ -30,6 +30,7 @@ public sealed class SettingsEditModel : ObservableObject
     private bool _startWithWindows;
     private bool _startMinimisedToTray;
     private bool _wakeOnTouch;
+    private bool _claimTouchInput;
     private double _dimAfterSeconds;
     private double _dimOpacity;
     private int _longPressMs;
@@ -58,6 +59,7 @@ public sealed class SettingsEditModel : ObservableObject
         _startWithWindows = config.Behaviour.StartWithWindows;
         _startMinimisedToTray = config.Behaviour.StartMinimisedToTray;
         _wakeOnTouch = config.Behaviour.WakeOnTouch;
+        _claimTouchInput = config.Behaviour.ClaimTouchInput;
         _dimAfterSeconds = config.Behaviour.DimAfterSeconds;
         _dimOpacity = config.Behaviour.DimOpacity;
         _longPressMs = config.Behaviour.LongPressMs;
@@ -181,6 +183,13 @@ public sealed class SettingsEditModel : ObservableObject
         set => Set(ref _wakeOnTouch, value);
     }
 
+    /// <summary>Take touch from Windows directly, so a tap does not move the mouse pointer.</summary>
+    public bool ClaimTouchInput
+    {
+        get => _claimTouchInput;
+        set => Set(ref _claimTouchInput, value);
+    }
+
     /// <summary>Seconds of no touches before the panel dims. Zero turns dimming off.</summary>
     public double DimAfterSeconds
     {
@@ -249,6 +258,7 @@ public sealed class SettingsEditModel : ObservableObject
             StartWithWindows = _startWithWindows,
             StartMinimisedToTray = _startMinimisedToTray,
             WakeOnTouch = _wakeOnTouch,
+            ClaimTouchInput = _claimTouchInput,
             DimAfterSeconds = _dimAfterSeconds,
             DimOpacity = _dimOpacity,
             LongPressMs = _longPressMs,
